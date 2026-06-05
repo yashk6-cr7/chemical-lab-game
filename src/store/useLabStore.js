@@ -36,16 +36,98 @@ const useLabStore = create((set, get) => ({
   setHoverLight: (data) => set({ hoverLight: data }),
 
   // --- Safety & Environment ---
-  coatOn: false,
-  gogglesOn: false,
-  glovesOn: false,
-  inFumeHood: false,
-  nearExtinguisher: false,
-  airQuality: 100,
+  safetyGear: {
+    coat: false,
+    goggles: false,
+    gloves: false,
+    coatEquippedCount: 0,
+    gogglesEquippedCount: 0,
+    glovesEquippedCount: 0
+  },
+  
+  toggleCoat: () => set(state => ({
+    safetyGear: { ...state.safetyGear, coat: !state.safetyGear.coat, coatEquippedCount: !state.safetyGear.coat ? state.safetyGear.coatEquippedCount + 1 : state.safetyGear.coatEquippedCount }
+  })),
+  toggleGoggles: () => set(state => ({
+    safetyGear: { ...state.safetyGear, goggles: !state.safetyGear.goggles, gogglesEquippedCount: !state.safetyGear.goggles ? state.safetyGear.gogglesEquippedCount + 1 : state.safetyGear.gogglesEquippedCount }
+  })),
+  toggleGloves: () => set(state => ({
+    safetyGear: { ...state.safetyGear, gloves: !state.safetyGear.gloves, glovesEquippedCount: !state.safetyGear.gloves ? state.safetyGear.glovesEquippedCount + 1 : state.safetyGear.glovesEquippedCount }
+  })),
 
-  setSafetyGear: (gear, value) => set({ [gear]: value }),
+  inFumeHood: false,
   setInFumeHood: (value) => set({ inFumeHood: value }),
+
+  airQuality: 100,
+  airQualityHistory: [],
   setAirQuality: (value) => set({ airQuality: value }),
+
+  // --- Consequence System ---
+  consequenceQueue: [],
+  activeConsequences: [],
+  addConsequence: (event) => set(state => ({
+    consequenceQueue: [...state.consequenceQueue.slice(-4), event]
+  })),
+  dismissConsequence: () => set(state => ({
+    consequenceQueue: state.consequenceQueue.slice(1)
+  })),
+
+  // --- Emergency States ---
+  isFireActive: false,
+  fireBeakerId: null,
+  fireIntensity: 0,
+  eyeExposureActive: false,
+  setFireActive: (beakerId, intensity) => set({ isFireActive: true, fireBeakerId: beakerId, fireIntensity: intensity }),
+  extinguishFire: () => set({ isFireActive: false, fireIntensity: 0 }),
+  setEyeExposure: (bool) => set({ eyeExposureActive: bool }),
+
+  // --- Extinguisher ---
+  isHoldingExtinguisher: false,
+  extinguisherCharge: 100,
+  isSpraying: false,
+  pickUpExtinguisher: () => set({ isHoldingExtinguisher: true, isHoldingBottle: false, isHoldingBeaker: false }),
+  putDownExtinguisher: () => set({ isHoldingExtinguisher: false, isSpraying: false }),
+  sprayExtinguisher: () => set({ isSpraying: true }),
+  stopSpray: () => set({ isSpraying: false }),
+  updateExtinguisherCharge: (amount) => set(state => ({ extinguisherCharge: Math.max(0, state.extinguisherCharge - amount) })),
+
+  // --- Safety Stats & Dashboard ---
+  safetyStats: {
+    reactionsWithGoggles: 0,
+    reactionsWithoutGoggles: 0,
+    reactionsWithGloves: 0,
+    reactionsWithoutGloves: 0,
+    reactionsWithCoat: 0,
+    reactionsWithoutCoat: 0,
+    totalReactions: 0,
+    accidentsTotal: 0,
+    fireCount: 0,
+    eyeExposureCount: 0
+  },
+  showSafetyDashboard: false,
+  accidentLog: [],
+  toggleSafetyDashboard: () => set(state => ({ showSafetyDashboard: !state.showSafetyDashboard })),
+  recordReaction: (hadGoggles, hadGloves, hadCoat) => set(state => ({
+    safetyStats: {
+      ...state.safetyStats,
+      totalReactions: state.safetyStats.totalReactions + 1,
+      reactionsWithGoggles: state.safetyStats.reactionsWithGoggles + (hadGoggles ? 1 : 0),
+      reactionsWithoutGoggles: state.safetyStats.reactionsWithoutGoggles + (!hadGoggles ? 1 : 0),
+      reactionsWithGloves: state.safetyStats.reactionsWithGloves + (hadGloves ? 1 : 0),
+      reactionsWithoutGloves: state.safetyStats.reactionsWithoutGloves + (!hadGloves ? 1 : 0),
+      reactionsWithCoat: state.safetyStats.reactionsWithCoat + (hadCoat ? 1 : 0),
+      reactionsWithoutCoat: state.safetyStats.reactionsWithoutCoat + (!hadCoat ? 1 : 0),
+    }
+  })),
+  recordAccident: (type, chemical, missingGear) => set(state => ({
+    safetyStats: {
+      ...state.safetyStats,
+      accidentsTotal: state.safetyStats.accidentsTotal + 1,
+      fireCount: type === 'fire_hazard' ? state.safetyStats.fireCount + 1 : state.safetyStats.fireCount,
+      eyeExposureCount: type === 'eye_exposure' ? state.safetyStats.eyeExposureCount + 1 : state.safetyStats.eyeExposureCount
+    },
+    accidentLog: [...state.accidentLog, { type, chemical, missingGear, timestamp: Date.now() }]
+  })),
 
   // --- Phase 6: Temperature equipment state ---
   hotplate: {
@@ -208,7 +290,11 @@ const useLabStore = create((set, get) => ({
     const newVolume = Math.min(100, existingVolume + amount)
     const newContents = [...beaker.contents, { chemicalId: chemical.id, amount, color: chemical.color }]
 
-    const safetyState = { gogglesOn: state.gogglesOn, glovesOn: state.glovesOn, coatOn: state.coatOn }
+    const safetyState = { 
+      gogglesOn: state.safetyGear.goggles, 
+      glovesOn: state.safetyGear.gloves, 
+      coatOn: state.safetyGear.coat 
+    }
     const envState    = { inFumeHood: state.inFumeHood, airQuality: state.airQuality }
 
     // reaction engine runs synchronously for now; Phase 4 worker wraps this
@@ -221,6 +307,22 @@ const useLabStore = create((set, get) => ({
     const simulatedBeakerState = { ...beaker, totalVolume: newVolume, contents: newContents }
     const consequenceEvents = runCascade(reactionResult, simulatedBeakerState, safetyState, envState)
     const violations = checkViolations(reactionResult, safetyState)
+
+    // Phase 7: Track reaction stats and queue consequences
+    state.recordReaction(safetyState.gogglesOn, safetyState.glovesOn, safetyState.coatOn)
+    
+    if (consequenceEvents.length > 0) {
+      consequenceEvents.forEach(event => {
+        state.addConsequence(event)
+        // Extract missing gear for the accident log
+        let missing = []
+        if (!safetyState.gogglesOn && event.id === 'eye_exposure') missing.push('Goggles')
+        if (!safetyState.glovesOn && event.id.includes('skin')) missing.push('Gloves')
+        if (!safetyState.coatOn && (event.id.includes('clothing') || event.id.includes('body'))) missing.push('Lab Coat')
+        
+        state.recordAccident(event.id, chemical.name, missing)
+      })
+    }
 
     const wasAccident = consequenceEvents.length > 0
     const logEntry = recordDiscovery(reactionResult, newContents, state.depthMode, wasAccident)
@@ -269,9 +371,9 @@ export default useLabStore
 // Import and use these in components instead of destructuring useLabStore()
 export const useBeakers     = () => useLabStore(state => state.beakers, shallow)
 export const useSafetyGear  = () => useLabStore(state => ({
-  gogglesOn: state.gogglesOn,
-  glovesOn:  state.glovesOn,
-  coatOn:    state.coatOn
+  gogglesOn: state.safetyGear.goggles,
+  glovesOn:  state.safetyGear.gloves,
+  coatOn:    state.safetyGear.coat
 }), shallow)
 export const useActiveEffects = () => useLabStore(state => state.currentReactions, shallow)
 export const useHotplate      = () => useLabStore(state => state.hotplate, shallow)

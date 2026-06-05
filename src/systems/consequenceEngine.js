@@ -4,6 +4,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
   // 1. Check safety violations from the reaction engine directly
   if (reactionResult.safetyViolations.includes("eye_exposure_risk") && !safetyState.gogglesOn) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "eye_exposure",
       severity: 5,
       visualEffect: "blur_vignette_red",
@@ -19,6 +20,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
 
   if (reactionResult.safetyViolations.includes("eye_acid_exposure") && !safetyState.gogglesOn) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "eye_exposure",
       severity: 5,
       visualEffect: "blur_vignette_red",
@@ -34,6 +36,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
 
   if (reactionResult.safetyViolations.includes("skin_acid_exposure") && !safetyState.glovesOn) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "skin_exposure",
       severity: 4,
       visualEffect: "hand_highlight_red",
@@ -49,6 +52,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
 
   if (reactionResult.safetyViolations.includes("clothing_damage") && !safetyState.coatOn) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "clothing_damage",
       severity: 2,
       visualEffect: "clothing_indicator",
@@ -65,6 +69,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
   // 2. Check reaction intensity
   if (reactionResult.intensity > 7 && reactionResult.temperatureChange > 40) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "beaker_crack",
       severity: 3,
       visualEffect: "crack_sound_visual",
@@ -82,6 +87,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
   if (reactionResult.producesGas && !environmentState.inFumeHood) {
     if (reactionResult.gasType === "vapor" || reactionResult.type === "volatile_exposure") {
       events.push({
+        id: Date.now() + Math.random(),
         type: "air_quality_drop",
         severity: 3,
         visualEffect: "vignette_yellow_pulse",
@@ -99,6 +105,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
   // 4. Check fire conditions
   if (reactionResult.isFire) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "fire_hazard",
       severity: 5,
       visualEffect: "fire_overlay_edges",
@@ -115,6 +122,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
   // 5. Check overflow
   if (beakerState.totalVolume > 100) {
     events.push({
+      id: Date.now() + Math.random(),
       type: "overflow",
       severity: 2,
       visualEffect: "spill_on_bench",

@@ -1,143 +1,247 @@
-// Safety Corner — left wall, near front
-// Contains: fire extinguisher, eyewash station, emergency shower
+// Safety Corner — left wall
+// Phase 7: Eyewash + Emergency Shower are now fully interactive
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { useRefDisposal } from '../../utils/disposal'
+import useLabStore from '../../store/useLabStore'
 
-function FireExtinguisher({ position }) {
-  const geoRefs = useRef([])
-  const matRefs = useRef([])
-  useRefDisposal(geoRefs, matRefs)
-  
-  return (
-    <group position={position}>
-      {/* Wall bracket */}
-      <mesh position={[0.06, 0, 0]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.08, 0.12, 0.14]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#888888" metalness={0.5} roughness={0.4} />
-      </mesh>
-      {/* Red cylinder body */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.1, 0.1, 0.6, 20]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#cc1111" metalness={0.3} roughness={0.3} />
-      </mesh>
-      {/* Top cap */}
-      <mesh position={[0, 0.32, 0]}>
-        <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#cc1111" metalness={0.3} roughness={0.3} />
-      </mesh>
-      {/* Valve / handle top — dark cylinder */}
-      <mesh position={[0, 0.38, 0]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.035, 0.05, 0.1, 12]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#222222" roughness={0.6} />
-      </mesh>
-      {/* Handle bar */}
-      <mesh position={[0, 0.44, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.012, 0.012, 0.18, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#111111" roughness={0.5} />
-      </mesh>
-      {/* Nozzle hose */}
-      <mesh position={[0.06, 0.3, 0.06]} rotation={[0.4, 0, 0.3]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.015, 0.015, 0.2, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#333333" roughness={0.8} />
-      </mesh>
-      {/* White label rectangle */}
-      <mesh position={[0, 0.02, 0.101]}>
-        <planeGeometry ref={el => geoRefs.current.push(el)} args={[0.14, 0.22]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#f8f8f0" roughness={0.9} />
-      </mesh>
-    </group>
-  )
-}
-
+// ─── Eyewash Station ───────────────────────────────────────────────────────────
 function EyewashStation({ position }) {
   const geoRefs = useRef([])
   const matRefs = useRef([])
   useRefDisposal(geoRefs, matRefs)
 
+  const eyeExposureActive = useLabStore(state => state.eyeExposureActive)
+  const setEyeExposure    = useLabStore(state => state.setEyeExposure)
+  const addConsequence    = useLabStore(state => state.addConsequence)
+  const depthMode         = useLabStore(state => state.depthMode)
+  const hoverTarget       = useLabStore(state => state.hoverTarget)
+  const setHoverTarget    = useLabStore(state => state.setHoverTarget)
+
+  const [isUsing, setIsUsing]   = useState(false)
+  const [isFlowing, setIsFlowing] = useState(false)
+  const glowRef   = useRef()
+  const { camera } = useThree()
+
+  // Pulse glow when eye exposure is active
+  useFrame((state) => {
+    if (!glowRef.current) return
+    const t = state.clock.elapsedTime
+    if (eyeExposureActive) {
+      glowRef.current.intensity = 0.3 + Math.sin(t * 4) * 0.25
+    } else {
+      glowRef.current.intensity *= 0.9
+    }
+  })
+
+  const handleClick = () => {
+    // Proximity check — must be within 2 units
+    const eyewashWorldPos = new THREE.Vector3(...position)
+    const dist = camera.position.distanceTo(eyewashWorldPos)
+    if (dist > 2.5) return
+
+    if (!isUsing) {
+      setIsUsing(true)
+      setIsFlowing(true)
+
+      // Clear eye exposure after 3 seconds of use
+      setTimeout(() => {
+        setEyeExposure(false)
+        addConsequence({
+          id: Date.now(),
+          type: 'eyewash_used',
+          severity: 1,
+          message: {
+            easy: 'Eyes rinsed at the eyewash station. Injury mitigated. Great instinct!',
+            moderate: 'Ocular irrigation performed. 15+ minutes recommended. Injury severity reduced.',
+            complex: 'Copious water irrigation initiated. Dilutes and mechanically removes chemical from corneal surface. pH normalization key objective.'
+          }
+        })
+        setIsUsing(false)
+        setIsFlowing(false)
+      }, 3000)
+    }
+  }
+
+  const isNearby = hoverTarget === 'eyewash'
+
   return (
     <group position={position}>
-      {/* Main box body — yellow-green */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.35, 0.25, 0.18]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#8bc34a" roughness={0.5} metalness={0.1} />
-      </mesh>
-      {/* Two bowl shapes at front */}
-      <mesh position={[-0.07, -0.06, 0.1]}>
-        <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.055, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#cccccc" metalness={0.6} roughness={0.3} />
-      </mesh>
-      <mesh position={[0.07, -0.06, 0.1]}>
-        <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.055, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#cccccc" metalness={0.6} roughness={0.3} />
-      </mesh>
-      {/* Silver connecting pipe */}
-      <mesh position={[0, -0.06, 0.1]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.012, 0.012, 0.18, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#bbbbbb" metalness={0.8} roughness={0.2} />
-      </mesh>
-      {/* Emergency label — slightly emissive */}
-      <mesh position={[0, 0.06, 0.092]}>
-        <planeGeometry ref={el => geoRefs.current.push(el)} args={[0.28, 0.1]} />
-        <meshStandardMaterial
-          ref={el => matRefs.current.push(el)}
-          color="#ffffff"
-          emissive="#ccff00"
-          emissiveIntensity={0.12}
-          roughness={0.9}
-        />
-      </mesh>
+      {/* Eyewash emergency pulse light */}
+      <pointLight
+        ref={glowRef}
+        color="#44ff88"
+        intensity={0}
+        distance={2}
+        castShadow={false}
+      />
+
+      <group
+        onClick={handleClick}
+        onPointerEnter={() => setHoverTarget('eyewash')}
+        onPointerLeave={() => { if (hoverTarget === 'eyewash') setHoverTarget(null) }}
+      >
+        {/* Main box body */}
+        <mesh castShadow>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.35, 0.25, 0.18]} />
+          <meshStandardMaterial
+            ref={el => matRefs.current.push(el)}
+            color={eyeExposureActive ? '#6bff88' : '#8bc34a'}
+            emissive={eyeExposureActive ? '#004422' : '#000000'}
+            emissiveIntensity={eyeExposureActive ? 0.4 : 0}
+            roughness={0.5} metalness={0.1}
+          />
+        </mesh>
+
+        {/* Two bowls */}
+        {[-0.07, 0.07].map((x, i) => (
+          <mesh key={i} position={[x, -0.06, 0.1]}>
+            <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.055, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#cccccc" metalness={0.6} roughness={0.3} />
+          </mesh>
+        ))}
+
+        {/* Connecting pipe */}
+        <mesh position={[0, -0.06, 0.1]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.012, 0.012, 0.18, 8]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#bbbbbb" metalness={0.8} roughness={0.2} />
+        </mesh>
+
+        {/* Emergency label */}
+        <mesh position={[0, 0.06, 0.092]}>
+          <planeGeometry ref={el => geoRefs.current.push(el)} args={[0.28, 0.1]} />
+          <meshStandardMaterial
+            ref={el => matRefs.current.push(el)}
+            color="#ffffff"
+            emissive="#ccff00"
+            emissiveIntensity={eyeExposureActive ? 0.5 : 0.12}
+            roughness={0.9}
+          />
+        </mesh>
+      </group>
+
+      {/* Water streams when in use */}
+      {isFlowing && [-0.07, 0.07].map((x, i) => (
+        <mesh key={`stream-${i}`} position={[x, -0.13, 0.1]} rotation={[0.05, 0, 0]}>
+          <cylinderGeometry args={[0.006, 0.003, 0.12, 6]} />
+          <meshStandardMaterial color="#88ccff" transparent opacity={0.7} roughness={1} />
+        </mesh>
+      ))}
     </group>
   )
 }
 
+// ─── Emergency Shower ──────────────────────────────────────────────────────────
 function EmergencyShower({ position }) {
   const geoRefs = useRef([])
   const matRefs = useRef([])
   useRefDisposal(geoRefs, matRefs)
 
+  const addConsequence = useLabStore(state => state.addConsequence)
+  const hoverTarget    = useLabStore(state => state.hoverTarget)
+  const setHoverTarget = useLabStore(state => state.setHoverTarget)
+  const { camera } = useThree()
+
+  const [isRunning, setIsRunning] = useState(false)
+  const showerLightRef = useRef()
+
+  useFrame((state) => {
+    if (!showerLightRef.current) return
+    const t = state.clock.elapsedTime
+    showerLightRef.current.intensity = isRunning
+      ? 0.6 + Math.sin(t * 8) * 0.2
+      : 0
+  })
+
+  const handleClick = () => {
+    const showerWorldPos = new THREE.Vector3(...position)
+    const dist = camera.position.distanceTo(showerWorldPos)
+    if (dist > 2.5) return
+
+    if (!isRunning) {
+      setIsRunning(true)
+      setTimeout(() => {
+        addConsequence({
+          id: Date.now(),
+          type: 'shower_used',
+          severity: 1,
+          message: {
+            easy: 'Emergency shower activated! Chemical exposure reduced. A new lab coat is ready.',
+            moderate: 'Full-body decontamination performed. Shower for minimum 15 minutes per ANSI Z358.1.',
+            complex: 'Deluge shower: 75.7+ L/min for minimum 15 min. Removes chemical from skin, hair, and clothing. New PPE required before re-entering work area.'
+          }
+        })
+        setTimeout(() => setIsRunning(false), 5000)
+      }, 500)
+    }
+  }
+
   return (
     <group position={position}>
-      {/* Vertical chrome pipe floor to ceiling */}
+      <pointLight ref={showerLightRef} color="#88ccff" intensity={0} distance={2} castShadow={false} />
+
+      {/* Vertical pipe */}
       <mesh position={[0, 1.75, 0]} castShadow>
         <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.025, 0.025, 3.5, 12]} />
         <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#d4d4d4" metalness={0.9} roughness={0.1} />
       </mesh>
-      {/* Horizontal arm at top */}
+
+      {/* Horizontal arm */}
       <mesh position={[0.15, 3.4, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.02, 0.02, 0.32, 12]} />
         <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#d4d4d4" metalness={0.9} roughness={0.1} />
       </mesh>
-      {/* Shower head disk */}
-      <mesh position={[0.3, 3.4, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.12, 0.12, 0.04, 20]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#c0c0c0" metalness={0.8} roughness={0.2} />
-      </mesh>
-      {/* Pull handle at shoulder height (y≈1.5) */}
+
+      {/* Shower head — interactive */}
+      <group onClick={handleClick}
+        onPointerEnter={() => setHoverTarget('shower')}
+        onPointerLeave={() => { if (hoverTarget === 'shower') setHoverTarget(null) }}>
+        <mesh position={[0.3, 3.4, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.12, 0.12, 0.04, 20]} />
+          <meshStandardMaterial
+            ref={el => matRefs.current.push(el)}
+            color={isRunning ? '#aaddff' : '#c0c0c0'}
+            metalness={0.8} roughness={0.2}
+            emissive={isRunning ? '#003355' : '#000000'}
+            emissiveIntensity={isRunning ? 0.5 : 0}
+          />
+        </mesh>
+      </group>
+
+      {/* Pull handle */}
       <mesh position={[0.12, 1.5, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.015, 0.015, 0.25, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#d4d4d4" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#ffcc00" metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Handle grip knobs */}
-      <mesh position={[0, 1.5, 0]}>
-        <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.022, 8, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#c0c0c0" metalness={0.9} roughness={0.15} />
-      </mesh>
-      <mesh position={[0.25, 1.5, 0]}>
-        <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.022, 8, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#c0c0c0" metalness={0.9} roughness={0.15} />
-      </mesh>
+      {[0, 0.25].map((x, i) => (
+        <mesh key={i} position={[x, 1.5, 0]}>
+          <sphereGeometry ref={el => geoRefs.current.push(el)} args={[0.022, 8, 8]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#ffcc00" metalness={0.6} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Water curtain when running */}
+      {isRunning && Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * Math.PI * 2
+        const r = 0.08
+        return (
+          <mesh key={`drop-${i}`} position={[0.3 + Math.cos(angle) * r, 2.5, Math.sin(angle) * r]}>
+            <cylinderGeometry args={[0.004, 0.002, 1.8, 4]} />
+            <meshStandardMaterial color="#aaddff" transparent opacity={0.55} roughness={1} />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
 
+// ─── Safety Corner Root ────────────────────────────────────────────────────────
 export default function SafetyCorner() {
   return (
     <group>
-      {/* Fire extinguisher — left wall, near front, mounted at chest height */}
-      <FireExtinguisher position={[-5.8, 1.2, 2.0]} />
-
-      {/* Eyewash station — left wall, mounted at eye height */}
+      {/* Eyewash station — left wall, at eye height */}
       <EyewashStation position={[-5.72, 1.55, 0.5]} />
 
       {/* Emergency shower — corner near left wall */}
