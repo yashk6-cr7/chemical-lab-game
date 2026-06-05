@@ -1,0 +1,201 @@
+/* eslint-disable */
+import { useRef, useMemo, useEffect, useState, useCallback } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
+import useLabStore from '../../store/useLabStore'
+import { useDisposable } from '../../utils/disposal'
+
+// animation.md: @react-spring/three for 3D spring physics — framer-motion is HTML ONLY
+// Pre-allocate vectors outside component to avoid GC in useFrame (r3f.md)
+const _camQuat = new THREE.Quaternion()
+const _localQuat = new THREE.Quaternion()
+const _euler = new THREE.Euler()
+const _worldPos = new THREE.Vector3()
+
+function createLabelTexture(chemical) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 256
+  canvas.height = 300
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, 256, 300)
+  ctx.strokeStyle = chemical.labelColor
+  ctx.lineWidth = 12
+  ctx.strokeRect(6, 6, 244, 288)
+  ctx.fillStyle = chemical.labelColor
+  ctx.font = 'bold 34px sans-serif'
+  ctx.textAlign = 'center'
+  const words = chemical.name.split(' ')
+  if (words.length > 1 && ctx.measureText(chemical.name).width > 220) {
+    ctx.fillText(words[0], 128, 60)
+    ctx.fillText(words.slice(1).join(' '), 128, 100)
+  } else {
+    ctx.fillText(chemical.name, 128, 78)
+  }
+  ctx.fillStyle = '#333333'
+  ctx.font = '30px monospace'
+  ctx.fillText(chemical.formula, 128, 158)
+  const dotY = 240
+  const dotSpacing = 24
+  const startX = 128 - ((chemical.hazardLevel - 1) * dotSpacing) / 2
+  for (let i = 0; i < chemical.hazardLevel; i++) {
+    ctx.beginPath()
+    ctx.arc(startX + i * dotSpacing, dotY, 8, 0, Math.PI * 2)
+    ctx.fillStyle = chemical.hazardLevel >= 4 ? '#ff0000' : chemical.hazardLevel >= 3 ? '#ff9800' : '#4caf50'
+    ctx.fill()
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.anisotropy = 16
+  return texture
+}
+
+export default function ChemicalPickup() {
+  const heldChemical = useLabStore(state => state.heldChemical)
+  const isPouring    = useLabStore(state => state.isPouring)
+  const putDownBottle = useLabStore(state => state.putDownBottle)
+
+  const groupRef = useRef()
+  const { camera } = useThree()
+
+  // Pre-allocated refs — avoids new THREE.Vector3() in useFrame (r3f.md critical rule)
+  const localPos   = useRef(new THREE.Vector3(0.25, -0.18, -0.45))
+  const targetPos  = useRef(new THREE.Vector3(0.25, -0.18, -0.45))
+  const prevCamPos = useRef(new THREE.Vector3())
+  const bobRef     = useRef(0)
+  const localRotX  = useRef(-0.2)
+
+  // Keep activeChemical stable so texture doesn't flicker on quick pick/put
+  const [activeChemical, setActiveChemical] = useState(null)
+  useEffect(() => {
+    if (heldChemical) setActiveChemical(heldChemical)
+  }, [heldChemical])
+
+  // Label texture — useMemo + dispose on unmount (performance.md)
+  const labelTexture = useMemo(() => {
+    if (!activeChemical) return null
+    return createLabelTexture(activeChemical)
+  }, [activeChemical])
+
+  useDisposable(labelTexture)
+
+  // Key/Q or right-click to put down
+  const handleKeyDown = useCallback((e) => {
+    if (e.code === 'KeyQ' && heldChemical) putDownBottle()
+  }, [heldChemical, putDownBottle])
+
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault()
+    if (heldChemical) putDownBottle()
+  }, [heldChemical, putDownBottle])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('contextmenu', handleContextMenu)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [handleKeyDown, handleContextMenu])
+
+  useFrame((_, delta) => {
+    if (!groupRef.current || !activeChemical) return
+
+    // --- Bobbing calculation (no allocations) ---
+    const camPos = camera.position
+    prevCamPos.current.y = camPos.y   // ignore vertical for speed
+    const speed = camPos.distanceTo(prevCamPos.current) / Math.max(delta, 0.001)
+    prevCamPos.current.copy(camPos)
+
+    if (speed > 0.5) bobRef.current += delta * 8
+    const bobOffset = speed > 0.5 ? Math.sin(bobRef.current) * 0.008 : 0
+
+    // --- Spring target based on state ---
+    const tX = isPouring ? 0    : 0.25
+    const tY = isPouring ? -0.05 : -0.18 + bobOffset
+    const tZ = isPouring ? -0.6 : -0.45
+    const tRotX = isPouring ? -2.2 : -0.2
+
+    // Lerp local position (spring-like, no @react-spring needed for this tight loop)
+    targetPos.current.set(tX, tY, tZ)
+    localPos.current.lerp(targetPos.current, delta * 5)
+    localRotX.current += (tRotX - localRotX.current) * delta * 5
+
+    // --- Camera-space → world-space transform (no allocations) ---
+    camera.getWorldQuaternion(_camQuat)
+    _euler.set(localRotX.current, 0, 0)
+    _localQuat.setFromEuler(_euler)
+
+    _worldPos.copy(localPos.current).applyQuaternion(_camQuat).add(camera.position)
+
+    groupRef.current.position.copy(_worldPos)
+    // Multiply in place: camQuat * localQuat
+    groupRef.current.quaternion.copy(_camQuat).multiply(_localQuat)
+  })
+
+  const scale = heldChemical ? 1 : 0
+
+  return (
+    <group ref={groupRef} scale={scale}>
+      {activeChemical && (
+        <>
+          {/* Bottle body — transmission, no transparent flag (threejs.md) */}
+          <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
+            <cylinderGeometry args={[0.06, 0.07, 0.28, 16]} />
+            <meshPhysicalMaterial
+              color={activeChemical.bottleColor}
+              envMapIntensity={1.0}
+              roughness={0.05}
+              metalness={0}
+              transmission={0.7}
+              thickness={0.5}
+              ior={1.5}
+              transparent={false}
+            />
+          </mesh>
+
+          {/* Contents */}
+          <mesh position={[0, 0.095, 0]}>
+            <cylinderGeometry args={[0.055, 0.062, 0.18, 16]} />
+            <meshStandardMaterial
+              color={activeChemical.color}
+              transparent={activeChemical.state === 'liquid'}
+              opacity={activeChemical.state === 'liquid' ? activeChemical.liquidOpacity : 1.0}
+              roughness={activeChemical.state === 'solid' ? 1.0 : 0.2}
+              depthWrite={activeChemical.state !== 'liquid'}
+            />
+          </mesh>
+
+          {/* Cap */}
+          <mesh position={[0, 0.3, 0]} castShadow>
+            <cylinderGeometry args={[0.065, 0.065, 0.04, 16]} />
+            <meshStandardMaterial
+              color={activeChemical.labelColor}
+              roughness={0.6}
+              metalness={0.1}
+            />
+          </mesh>
+
+          {/* Label */}
+          <mesh position={[0, 0.12, 0.068]}>
+            <planeGeometry args={[0.1, 0.12]} />
+            <meshStandardMaterial
+              map={labelTexture}
+              transparent
+              roughness={0.8}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Subtle glow while held */}
+          <pointLight
+            position={[0, 0.15, 0]}
+            color={activeChemical.color}
+            intensity={0.3}
+            distance={1.0}
+            castShadow={false}
+          />
+        </>
+      )}
+    </group>
+  )
+}

@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "skills": {
+    "accessibility": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/accessibility/SKILL.md",
+      "computedHash": "ebfa09617a2ac4fd64afd73267726b787145a8d14294df3f8802b462c91594ab"
+    },
+    "aceternity-ui": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/aceternity-ui/skills/aceternity-ui/SKILL.md",
+      "computedHash": "c14782ab99da57707caa44b33edbddcb70344e6450b22600c66623e54de7aec8"
+    },
+    "best-practices": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/best-practices/SKILL.md",
+      "computedHash": "f84707a5ba30771f4c3e672846457e4b0ed4dff5fd268bf0fe6cd17583637671"
+    },
+    "core-web-vitals": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/core-web-vitals/SKILL.md",
+      "computedHash": "4684e264c8e3dd529aefe97c3102814e3b63a9ea21a163d0f835ed506773e3f8"
+    },
+    "feature-arch": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/feature-arch/SKILL.md",
+      "computedHash": "1ecf2bc6b1ee9b92e7873f3afb5459abefb94ec5219b77c246aae11cb0f2f6db"
+    },
+    "framer-motion-gestures": {
+      "source": "C-Jeril/framer-motion-skills",
+      "sourceType": "github",
+      "skillPath": "skills/framer-motion-gestures/SKILL.md",
+      "computedHash": "5729e0fd140ec8fb26dbea2592aac830cad61f6458b4891b5920220690dd6ff0"
+    },
+    "framer-motion-layout": {
+      "source": "C-Jeril/framer-motion-skills",
+      "sourceType": "github",
+      "skillPath": "skills/framer-motion-layout/SKILL.md",
+      "computedHash": "731a80c91da6e4975f452245e72eb398698ba18ca5040b1b424d5ac8418c0fb3"
+    },
+    "framer-motion-react": {
+      "source": "C-Jeril/framer-motion-skills",
+      "sourceType": "github",
+      "skillPath": "skills/framer-motion-react/SKILL.md",
+      "computedHash": "05afba82bf872e148b95c300ed1ca41432878c63aca79d9c1280a029a41af3bd"
+    },
+    "framer-motion-scroll": {
+      "source": "C-Jeril/framer-motion-skills",
+      "sourceType": "github",
+      "skillPath": "skills/framer-motion-scroll/SKILL.md",
+      "computedHash": "238eabe19ce3cf6396f7bf555036a008184e869a073cea6f874e5aa266b976b1"
+    },
+    "framer-motion-variants": {
+      "source": "C-Jeril/framer-motion-skills",
+      "sourceType": "github",
+      "skillPath": "skills/framer-motion-variants/SKILL.md",
+      "computedHash": "a186d6cad8c75ff61efa8d70cf3ba2246bfbf62bba157b433d13c516557f81ac"
+    },
+    "motion": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/motion/skills/motion/SKILL.md",
+      "computedHash": "07e39574eb2f22d7d3daa430c9b53abf3b2127c2801008205916334f8aa0143d"
+    },
+    "msw": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/msw/SKILL.md",
+      "computedHash": "a5e7cff8d718885d0c7aef174040055d3aeac9b2d2f01e53f4b862cfd35d0666"
+    },
+    "nextjs": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nextjs/SKILL.md",
+      "computedHash": "046d0028a76d0a2a3b4dfa8c865aa8264f150698f9afe775153efadbccc0d30b"
+    },
+    "nuqs": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nuqs/SKILL.md",
+      "computedHash": "4e6a1db6258f24e2e4d58df2cb322d4bee48901fe9aec7c5918bdf9eecb8cfb0"
+    },
+    "performance": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance/SKILL.md",
+      "computedHash": "646931a3af896ae12a3cad3d762668cb6487fe3ab179daf8fdc974fb79acfe49"
+    },
+    "playwright": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/playwright/SKILL.md",
+      "computedHash": "383c5c747217b153baf1e0acfaeaa514ca13de7ab024c72d91a67e444e32efd0"
+    },
+    "react": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react/SKILL.md",
+      "computedHash": "72bd00126446155723d9672e206a2262df2ea35a131c087f92ce166a6b2b0209"
+    },
+    "react-hook-form": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-hook-form/SKILL.md",
+      "computedHash": "7dfd94e25db5802278bc7ce81df80cb3570bf8e60d58264713b1053537f4d699"
+    },
+    "react-three-game": {
+      "source": "prnthh/react-three-game-skill",
+      "sourceType": "github",
+      "skillPath": "react-three-game/SKILL.md",
+      "computedHash": "45f7fdd9dcc298bbf314a276c7b0502717a2caac7c905add1a960040a42603cc"
+    },
+    "seo": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/seo/SKILL.md",
+      "computedHash": "3d72168e266b759454b3e16028e7306ec716f21de6878cac7e98a0a3834ab5db"
+    },
+    "shadcn": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "b555da9e4e3916bda88fae37f0851341e619baf4103af5ca82c70d46d15bf3b7"
+    },
+    "shader-dev": {
+      "source": "MiniMax-AI/skills",
+      "sourceType": "github",
+      "skillPath": "skills/shader-dev/SKILL.md",
+      "computedHash": "eb5ec98f90eec2c202ebce61f40806b1af01823bde403fb453dfaac693dd83d0"
+    },
+    "tailwind": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tailwind/SKILL.md",
+      "computedHash": "68049e900573b564fa69005a82e5eed0f7bf4cbad09556a83aad1e5c2af30850"
+    },
+    "tanstack-query": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tanstack-query/SKILL.md",
+      "computedHash": "98a7b9dd3fb8b64f2d1c073f993c04ce9984cd1acf9ffcf83fae399acbc7dd98"
+    },
+    "tdd": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tdd/SKILL.md",
+      "computedHash": "8d73d3bc6e7c0ed753e3437d58ae5a84caf54639601522b6c9e81afaad83a92a"
+    },
+    "threejs-r3f": {
+      "source": "b-open-io/prompts",
+      "sourceType": "github",
+      "skillPath": "skills/threejs-r3f/SKILL.md",
+      "computedHash": "ef326acb4a2bbf18e141514c250443b6ede05ad31a427631479e549dc8040859"
+    },
+    "typescript": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/typescript/SKILL.md",
+      "computedHash": "f2561480d75220fc9c0b7406f88081984b19ed4632e3ac53f7a6b233c4dff144"
+    },
+    "ui-design": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-design/SKILL.md",
+      "computedHash": "2af35bc75b4483865786a2bd14a1d47f4a016522f5b6f4e1f33439fddcb238f8"
+    },
+    "vercel-composition-patterns": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-composition-patterns/SKILL.md",
+      "computedHash": "32d1c2c225405318aaf653519b1cd908f69632bc2d9d7e22029ddd7da204c091"
+    },
+    "vercel-react-best-practices": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-react-best-practices/SKILL.md",
+      "computedHash": "2846b05bc32a392d905129b63c6652c9575b6e78a117edcff2f43c3d6377d8b7"
+    },
+    "vitest": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "c9bc240f08c63cf37427b772bf514f93800949ff4ff7b2ec0a1c7873f77c1122"
+    },
+    "web-design-guidelines": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    },
+    "web-quality-audit": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-quality-audit/SKILL.md",
+      "computedHash": "10db799d6bff4fc98a4067aa04fdee2e9f34eaca1c42fd4207a89aafe644a6f0"
+    },
+    "zod": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/zod/SKILL.md",
+      "computedHash": "28be1c7258d0be769640db16d4d22dd323f47a159369ae633f4b35caf50eed44"
+    }
+  }
+}

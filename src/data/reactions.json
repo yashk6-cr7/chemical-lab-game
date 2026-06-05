@@ -1,0 +1,47 @@
+[
+  {
+    "id": "vinegar_baking_soda",
+    "chemicals": ["vinegar", "baking_soda"],
+    "commonName": "Classic Volcano Reaction",
+    "realWorldExample": "This is how baking soda volcanoes work at science fairs.",
+    "rule": "acid_carbonate",
+    "expectedIntensity": 5,
+    "funFact": "The gas produced is the same CO₂ in your fizzy drinks."
+  },
+  {
+    "id": "hcl_naoh",
+    "chemicals": ["hcl", "naoh"],
+    "commonName": "Strong Acid-Base Neutralization",
+    "realWorldExample": "This is how industrial waste water is neutralized before disposal.",
+    "rule": "neutralization_violent",
+    "expectedIntensity": 8,
+    "funFact": "The product, sodium chloride, is ordinary table salt."
+  },
+  {
+    "id": "h2o2_mno2",
+    "chemicals": ["h2o2", "manganese_dioxide"],
+    "commonName": "Elephant Toothpaste",
+    "realWorldExample": "A famous chemistry demonstration performed worldwide.",
+    "rule": "catalytic_decomposition",
+    "expectedIntensity": 9,
+    "funFact": "The foam is just soap bubbles filled with pure oxygen."
+  },
+  {
+    "id": "cuso4_naoh",
+    "chemicals": ["cuso4", "naoh"],
+    "commonName": "Copper Hydroxide Precipitation",
+    "realWorldExample": "Used in Fehling's solution to test for sugars in food.",
+    "rule": "precipitation",
+    "expectedIntensity": 4,
+    "funFact": "The vivid blue precipitate is copper hydroxide — same compound that gives the Statue of Liberty its color."
+  },
+  {
+    "id": "iron_hcl",
+    "chemicals": ["iron_filings", "hcl"],
+    "commonName": "Metal Dissolution",
+    "realWorldExample": "How iron is dissolved in industrial metal processing.",
+    "rule": "acid_metal",
+    "expectedIntensity": 6,
+    "funFact": "The bubbles are hydrogen gas — the same gas used in fuel cells."
+  }
+]
