@@ -1,7 +1,10 @@
 import useLabStore from '../../store/useLabStore'
+import { isMobileDevice } from '../../utils/isMobile'
 
 export default function Crosshair() {
   const hoverTarget = useLabStore(state => state.hoverTarget)
+
+  if (isMobileDevice()) return null;
 
   let icon = <div className="w-1.5 h-1.5 bg-white/80 rounded-full" />
   let borderColor = "border-white/30"

@@ -30,7 +30,7 @@ export default function ChemicalInfoPanel() {
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: -400, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute bottom-6 left-6 w-80 bg-[#111111]/95 backdrop-blur-xl border border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 text-gray-100"
+        className="absolute bottom-2 left-2 right-2 sm:bottom-6 sm:left-6 sm:right-auto sm:w-80 max-h-[95vh] bg-[#111111]/95 backdrop-blur-xl border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto flex flex-col z-50 text-gray-100"
       >
         {/* Header / Color Swatch */}
         <div className="relative h-24 p-6 flex flex-col justify-end" style={{ backgroundColor: `${selectedChemical.color}20` }}>

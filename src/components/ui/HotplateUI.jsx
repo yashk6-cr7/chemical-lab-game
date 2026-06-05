@@ -20,7 +20,7 @@ export default function HotplateUI() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className={`absolute bottom-24 left-1/2 -translate-x-1/2 w-80 rounded-2xl p-6 ${glassStyles} text-white font-sans`}
+          className={`absolute top-1/2 -translate-y-1/2 right-4 sm:top-auto sm:translate-y-0 sm:bottom-24 sm:left-1/2 sm:-translate-x-1/2 w-72 sm:w-80 rounded-2xl p-4 sm:p-6 ${glassStyles} text-white font-sans`}
           style={{ zIndex: 50 }}
         >
           <div className="flex justify-between items-center mb-6">
