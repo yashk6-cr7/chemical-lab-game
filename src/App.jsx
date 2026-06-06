@@ -38,6 +38,12 @@ import AirQualityMeter from './components/ui/AirQualityMeter'
 import ConsequenceDisplay from './components/ui/ConsequenceDisplay'
 import SafetyDashboard, { SafetyDashboardTrigger } from './components/ui/SafetyDashboard'
 
+// UI — Phase 8
+import { WhatHappenedPanel } from './components/ui/WhatHappenedPanel'
+import { DepthModeSelector } from './components/ui/DepthModeSelector'
+import { DiscoveryLogbook, LogbookTrigger } from './components/ui/DiscoveryLogbook'
+import { loadLogbookFromStorage } from './systems/logbook'
+
 import ErrorBoundary from './components/ErrorBoundary'
 import useLabStore from './store/useLabStore'
 import './index.css'
@@ -108,6 +114,14 @@ export default function App() {
   const beakers = useLabStore(state => state.beakers, shallow)
 
   const handleEnter = useCallback(() => setIsEntered(true), [])
+
+  // Load logbook from storage on startup
+  useEffect(() => {
+    const saved = loadLogbookFromStorage()
+    if (saved.length > 0) {
+      useLabStore.setState({ logbookEntries: saved })
+    }
+  }, [])
 
   return (
     <ErrorBoundary>
@@ -206,6 +220,12 @@ export default function App() {
 
             {/* Air quality simulator */}
             <AirQualitySimulator />
+
+            {/* ── Phase 8 UI ── */}
+            <DepthModeSelector />
+            <WhatHappenedPanel />
+            <DiscoveryLogbook />
+            <LogbookTrigger />
           </>
         )}
 

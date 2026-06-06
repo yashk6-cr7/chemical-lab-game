@@ -1,3 +1,4 @@
+import { getDepthContent } from './depthLayer'
 import chemicalsData from '../data/chemicals.json'
 
 function getChemicalName(chemicalId) {
@@ -5,51 +6,87 @@ function getChemicalName(chemicalId) {
   return data ? data.name : chemicalId
 }
 
-export function recordDiscovery(reactionResult, beakerContents, depthMode, wasAccident) {
-  const chemicalNames = beakerContents.map(c => getChemicalName(c.chemicalId))
-  const namesStr = chemicalNames.length > 2 
-    ? chemicalNames.slice(0, -1).join(", ") + " and " + chemicalNames[chemicalNames.length - 1]
-    : chemicalNames.join(" and ")
+export function recordReaction(reactionResult, chemicals, store) {
+  const easy = getDepthContent(reactionResult, 'easy')
+  const moderate = getDepthContent(reactionResult, 'moderate')
+  const complex = getDepthContent(reactionResult, 'complex')
 
-  let discovery
-
-  if (reactionResult.type === "acid_carbonate") {
-    discovery = `You discovered that ${namesStr} produce carbon dioxide gas.`
-  } else if (reactionResult.type === "neutralization_violent") {
-    discovery = `You discovered that strong acids and strong bases neutralize each other with significant heat production.`
-  } else if (reactionResult.type === "neutralization_gentle") {
-    discovery = `You discovered that mixing ${namesStr} results in mild neutralization.`
-  } else if (reactionResult.type === "catalytic_decomposition") {
-    discovery = `You discovered the elephant toothpaste reaction — rapid oxygen release.`
-  } else if (reactionResult.type === "acid_metal") {
-    discovery = `You discovered that acids dissolve metals like ${namesStr}, releasing hydrogen gas.`
-  } else if (reactionResult.type === "precipitation") {
-    discovery = `You discovered that mixing ${namesStr} forms a solid precipitate.`
-  } else if (reactionResult.type === "flammable_vapor") {
-    discovery = `You discovered that heating ${namesStr} produces highly flammable vapors.`
-  } else if (reactionResult.type === "dangerous_dilution") {
-    discovery = `You discovered that adding water directly to strong acid causes a dangerous exothermic reaction.`
-  } else if (reactionResult.type.includes("indicator")) {
-    discovery = `You discovered that indicators change color to show if a liquid is acid or base.`
-  } else {
-    discovery = `You mixed ${namesStr} and found they are chemically compatible without a dramatic reaction.`
-  }
-
-  if (wasAccident) {
-    discovery = "By accident, you discovered that " + discovery.toLowerCase().replace("you discovered that ", "")
-  }
+  const chemicalNames = chemicals.map(c => getChemicalName(c.chemicalId))
+  const chemicalIds = chemicals.map(c => c.chemicalId)
 
   const entry = {
-    id: Date.now().toString(),
+    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
     timestamp: Date.now(),
-    chemicalsUsed: chemicalNames,
-    reactionType: reactionResult.type,
-    discovery,
-    depthMode,
-    wasAccident,
-    temperature: reactionResult.temperatureChange,
-    intensity: reactionResult.intensity
+    chemicals: chemicalNames,
+    chemicalIds: chemicalIds,
+    reactionType: reactionResult?.type || 'mixing_only',
+    reactionResult,
+    easyDescription: (easy.headline + ' ' + easy.body).trim(),
+    moderateDescription: (moderate.headline + ' ' + moderate.body).trim(),
+    complexDescription: (complex.headline + ' ' + complex.body).trim(),
+    equation: complex.equation || '',
+    molecules: complex.moleculeKeys || { reactant1: null, reactant2: null, product1: null, product2: null },
+    energyData: complex.energyData || { deltaH: 0, activationEnergy: 30, isExothermic: false },
+    followUpQuestions: easy.followUpQuestions || [],
+    realWorldLink: easy.realWorldLink || '',
+    safetyViolations: reactionResult?.safetyViolations || [],
   }
 
-  return entry
+  // Update store and persist
+  const current = store.getState().logbookEntries || []
+  const updated = [entry, ...current].slice(0, 500) // max 500 entries
+  store.setState({ logbookEntries: updated })
+  
+  try {
+    localStorage.setItem('lab-logbook', JSON.stringify(updated))
+  } catch (e) {
+    // localStorage quota exceeded — silently fail
+    console.warn('Logbook localStorage save failed:', e)
+  }
+}
+
+export function loadLogbookFromStorage() {
+  try {
+    const raw = localStorage.getItem('lab-logbook')
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function buildLogbookHTML(entries, depthMode) {
+  const rows = entries.map(e => {
+    const desc = depthMode === 'easy' ? e.easyDescription
+      : depthMode === 'moderate' ? e.moderateDescription
+      : e.complexDescription
+    return `
+      <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;">
+        <div style="font-weight:bold;font-size:16px;">${e.chemicals?.join(' + ') || 'Unknown'}</div>
+        <div style="color:#888;font-size:12px;margin-bottom:8px;">
+          ${e.reactionType?.replace(/_/g, ' ')} · ${new Date(e.timestamp).toLocaleString()}
+        </div>
+        <p style="font-size:14px;line-height:1.6;">${desc}</p>
+        ${e.equation ? `<code style="display:block;background:#f4f4f4;padding:8px;border-radius:4px;margin-top:8px;">${e.equation}</code>` : ''}
+      </div>
+    `
+  }).join('')
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Chemistry Logbook</title>
+      <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { font-size: 24px; margin-bottom: 24px; }
+        @media print { body { margin: 0; } }
+      </style>
+    </head>
+    <body>
+      <h1>🧪 Discovery Logbook</h1>
+      <p style="color:#888;">Exported ${new Date().toLocaleDateString()} · ${entries.length} discoveries</p>
+      ${rows}
+    </body>
+    </html>
+  `
 }

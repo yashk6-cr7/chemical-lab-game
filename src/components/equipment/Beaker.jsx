@@ -16,8 +16,14 @@ export default function Beaker({ beaker }) {
   const setHoverTarget   = useLabStore(state => state.setHoverTarget)
   const pickUpBeaker     = useLabStore(state => state.pickUpBeaker)
   const queueConsequence = useLabStore(state => state.queueConsequence)
+  const pendingSetup     = useLabStore(state => state.pendingExperimentSetup)
   
   const isHeld = isHoldingBeaker && heldBeakerId === beaker.id
+
+  // Check if beaker is part of pending setup
+  const isPending = pendingSetup && beaker.contents.some(c => 
+    c.chemicalId === pendingSetup.chemical1Id || c.chemicalId === pendingSetup.chemical2Id
+  )
 
   const handlePointerOver = useCallback((e) => {
     e.stopPropagation()
@@ -99,6 +105,14 @@ export default function Beaker({ beaker }) {
           <mesh position={[0, 0.09, 0.072]}>
             <planeGeometry args={[0.05, 0.1]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.5} wireframe />
+          </mesh>
+        )}
+
+        {/* Pending setup glow */}
+        {isPending && (
+          <mesh position={[0, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.1, 16]} />
+            <meshBasicMaterial color="#06b6d4" transparent opacity={0.6} depthWrite={false} />
           </mesh>
         )}
       </group>

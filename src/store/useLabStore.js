@@ -3,21 +3,35 @@ import { shallow } from 'zustand/shallow'
 import { calculateReaction } from '../systems/reactionEngine'
 import { runCascade } from '../systems/consequenceEngine'
 import { checkViolations } from '../systems/safetyManager'
-import { recordDiscovery } from '../systems/logbook'
+import { recordReaction } from '../systems/logbook'
 
 // Load initial logbook
 const savedLogbook = localStorage.getItem('chemlab_logbook')
 const initialLogbook = savedLogbook ? JSON.parse(savedLogbook) : []
 
 const useLabStore = create((set, get) => ({
-  depthMode: 'moderate', // 'easy' | 'moderate' | 'complex'
+  depthMode: 'easy', // 'easy' | 'moderate' | 'complex'
   setDepthMode: (mode) => set({ depthMode: mode }),
 
   showLogbook: false,
+  setShowLogbook: (show) => set({ showLogbook: show }),
   showWhatHappened: false,
+  setShowWhatHappened: (show) => set({ showWhatHappened: show }),
+  whatHappenedReaction: null,
+
   showHotplateUI: false,
   setShowHotplateUI: (show) => set({ showHotplateUI: show }),
   lastReactionResult: null,
+
+  // --- Logbook additional ---
+  logbookSearch: '',
+  setLogbookSearch: (s) => set({ logbookSearch: s }),
+  logbookFilter: 'all',
+  setLogbookFilter: (f) => set({ logbookFilter: f }),
+
+  // --- Follow-up experiment ---
+  pendingExperimentSetup: null,
+  setPendingExperimentSetup: (setup) => set({ pendingExperimentSetup: setup }),
 
   // --- Held items ---
   heldChemical: null,
@@ -325,9 +339,12 @@ const useLabStore = create((set, get) => ({
     }
 
     const wasAccident = consequenceEvents.length > 0
-    const logEntry = recordDiscovery(reactionResult, newContents, state.depthMode, wasAccident)
-    const newLogbook = [...state.logbookEntries, logEntry]
-    localStorage.setItem('chemlab_logbook', JSON.stringify(newLogbook))
+    // Record reaction and trigger WhatHappened panel
+    recordReaction(reactionResult, newContents, { getState: get, setState: set })
+    set({
+      showWhatHappened: true,
+      whatHappenedReaction: reactionResult,
+    })
 
     const finalColor = reactionResult.colorChange || newColor || beaker.mixedColor
 
@@ -344,7 +361,6 @@ const useLabStore = create((set, get) => ({
         beakers: updatedBeakers,
         pendingConsequences: [...state.pendingConsequences, ...consequenceEvents],
         activeSafetyViolations: [...new Set([...state.activeSafetyViolations, ...violations])],
-        logbookEntries: newLogbook,
         lastReactionResult: reactionResult,
         currentReactions: reactionResult.intensity > 0
           ? [...state.currentReactions.filter(r => r.beakerId !== beakerId), { beakerId, ...reactionResult }]
@@ -381,3 +397,17 @@ export const useFridge        = () => useLabStore(state => state.fridge, shallow
 export const useFreezer       = () => useLabStore(state => state.freezer, shallow)
 export const useThermometer   = () => useLabStore(state => state.thermometer, shallow)
 export const useHoverLight    = () => useLabStore(state => state.hoverLight, shallow)
+
+// Phase 8 selectors
+export const useDepthMode = () => useLabStore(s => s.depthMode)
+export const useWhatHappened = () => useLabStore(s => ({
+  show: s.showWhatHappened,
+  reaction: s.whatHappenedReaction,
+}), shallow)
+export const useLogbook = () => useLabStore(s => ({
+  entries: s.logbookEntries,
+  show: s.showLogbook,
+  search: s.logbookSearch,
+  filter: s.logbookFilter,
+}), shallow)
+export const usePendingSetup = () => useLabStore(s => s.pendingExperimentSetup)

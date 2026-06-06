@@ -72,9 +72,11 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
   const heldBottleId     = useLabStore(state => state.heldBottleId)
   const setHoverTarget   = useLabStore(state => state.setHoverTarget)
   const setHoverLight    = useLabStore(state => state.setHoverLight)  // shared light (performance.md)
+  const pendingSetup     = useLabStore(state => state.pendingExperimentSetup)
 
   const isSelected = selectedChemical?.id === chemical.id
   const isHeld     = heldBottleId === chemical.id
+  const isPending  = pendingSetup?.chemical1Id === chemical.id || pendingSetup?.chemical2Id === chemical.id
 
   const labelTexture = useLabelTexture(chemical)
 
@@ -189,6 +191,19 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
           </mesh>
         )}
 
+        {/* Pending Experiment Glow */}
+        {isPending && !isSelected && (
+          <mesh position={[0, -0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.09, 16]} />
+            <meshBasicMaterial
+              color="#06b6d4" // cyan-500
+              transparent
+              opacity={0.6}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+
         {/* HTML Tooltip — framer-motion is correct here: HTML element (animation.md) */}
         <Html
           position={[0, 0.35, 0]}
@@ -238,9 +253,18 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
                   ))}
                 </div>
 
-                <p className="text-gray-300 text-xs italic leading-snug">
+                <p className="text-gray-300 text-xs italic leading-snug mb-2">
                   {chemical.easyDescription}
                 </p>
+
+                {isPending && (
+                  <div className="bg-cyan-950/50 border border-cyan-500/30 rounded p-2 mt-2 flex items-start gap-2">
+                    <span className="text-cyan-400 mt-0.5">⭐</span>
+                    <p className="text-cyan-200 text-[10px] font-medium leading-tight">
+                      {pendingSetup.suggestion}
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
