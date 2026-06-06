@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { shallow } from 'zustand/shallow'
+
 import { calculateReaction } from '../systems/reactionEngine'
 import { runCascade } from '../systems/consequenceEngine'
 import { checkViolations } from '../systems/safetyManager'
@@ -383,31 +383,18 @@ const useLabStore = create((set, get) => ({
 
 export default useLabStore
 
-// --- Pre-bound shallow selectors (react.md: always use shallow for array/object state) ---
-// Import and use these in components instead of destructuring useLabStore()
-export const useBeakers     = () => useLabStore(state => state.beakers, shallow)
-export const useSafetyGear  = () => useLabStore(state => ({
-  gogglesOn: state.safetyGear.goggles,
-  glovesOn:  state.safetyGear.gloves,
-  coatOn:    state.safetyGear.coat
-}), shallow)
-export const useActiveEffects = () => useLabStore(state => state.currentReactions, shallow)
-export const useHotplate      = () => useLabStore(state => state.hotplate, shallow)
-export const useFridge        = () => useLabStore(state => state.fridge, shallow)
-export const useFreezer       = () => useLabStore(state => state.freezer, shallow)
-export const useThermometer   = () => useLabStore(state => state.thermometer, shallow)
-export const useHoverLight    = () => useLabStore(state => state.hoverLight, shallow)
+// --- Pre-bound selectors ---
+export const useBeakers     = () => useLabStore(state => state.beakers)
+export const useSafetyGear  = () => useLabStore(state => state.safetyGear)
+export const useActiveEffects = () => useLabStore(state => state.currentReactions)
+export const useHotplate      = () => useLabStore(state => state.hotplate)
+export const useFridge        = () => useLabStore(state => state.fridge)
+export const useFreezer       = () => useLabStore(state => state.freezer)
+export const useThermometer   = () => useLabStore(state => state.thermometer)
+export const useHoverLight    = () => useLabStore(state => state.hoverLight)
 
 // Phase 8 selectors
 export const useDepthMode = () => useLabStore(s => s.depthMode)
-export const useWhatHappened = () => useLabStore(s => ({
-  show: s.showWhatHappened,
-  reaction: s.whatHappenedReaction,
-}), shallow)
-export const useLogbook = () => useLabStore(s => ({
-  entries: s.logbookEntries,
-  show: s.showLogbook,
-  search: s.logbookSearch,
-  filter: s.logbookFilter,
-}), shallow)
+export const useWhatHappened = () => useLabStore(s => s.whatHappenedReaction)
+export const useLogbook = () => useLabStore(s => s.logbookEntries)
 export const usePendingSetup = () => useLabStore(s => s.pendingExperimentSetup)

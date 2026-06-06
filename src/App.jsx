@@ -4,7 +4,6 @@ import { Physics } from '@react-three/rapier'
 import { EffectComposer, Bloom, Vignette, ToneMapping } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
 import { ACESFilmicToneMapping } from 'three'
-import { shallow } from 'zustand/shallow'
 
 // Lab scene
 import Lighting from './components/lab/Lighting'
@@ -50,7 +49,7 @@ import './index.css'
 
 // ── Shared hover light (1 light instead of per-bottle) ─────────────────────────
 function HoverLight() {
-  const hoverLight = useLabStore(state => state.hoverLight, shallow)
+  const hoverLight = useLabStore(state => state.hoverLight)
   if (!hoverLight?.active) return null
   return (
     <pointLight
@@ -89,7 +88,7 @@ function InteractionHint() {
 function AirQualitySimulator() {
   const airQuality = useLabStore(state => state.airQuality)
   const setAirQuality = useLabStore(state => state.setAirQuality)
-  const currentReactions = useLabStore(state => state.currentReactions, shallow)
+  const currentReactions = useLabStore(state => state.currentReactions)
   const inFumeHood = useLabStore(state => state.inFumeHood)
 
   useEffect(() => {
@@ -111,7 +110,7 @@ function AirQualitySimulator() {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
   const [isEntered, setIsEntered] = useState(false)
-  const beakers = useLabStore(state => state.beakers, shallow)
+  const beakers = useLabStore(state => state.beakers)
 
   const handleEnter = useCallback(() => setIsEntered(true), [])
 

@@ -1,10 +1,9 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import useLabStore from '../../store/useLabStore'
-import { shallow } from 'zustand/shallow'
 
 export default function SafetyGearPanel() {
-  const safetyGear = useLabStore(state => state.safetyGear, shallow)
+  const safetyGear = useLabStore(state => state.safetyGear)
   const toggleCoat = useLabStore(state => state.toggleCoat)
   const toggleGoggles = useLabStore(state => state.toggleGoggles)
   const toggleGloves = useLabStore(state => state.toggleGloves)

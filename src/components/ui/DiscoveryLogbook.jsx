@@ -171,12 +171,10 @@ function buildLogbookHTML(entries, depthMode) {
 
 // ── Main DiscoveryLogbook ─────────────────────────────────────────────────────
 export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
-  const { entries, show, search, filter } = useLabStore(s => ({
-    entries: s.logbookEntries,
-    show: s.showLogbook,
-    search: s.logbookSearch,
-    filter: s.logbookFilter,
-  }), shallow)
+  const entries = useLabStore(s => s.logbookEntries)
+  const show = useLabStore(s => s.showLogbook)
+  const search = useLabStore(s => s.logbookSearch)
+  const filter = useLabStore(s => s.logbookFilter)
 
   const depthMode    = useLabStore(s => s.depthMode)
   const setSearch    = useLabStore(s => s.setLogbookSearch)

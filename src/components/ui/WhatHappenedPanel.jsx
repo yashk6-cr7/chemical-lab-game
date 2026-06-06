@@ -11,10 +11,8 @@ import { FollowUpQuestions } from './FollowUpQuestions'
 import { DepthTransition } from './DepthTransition'
 
 export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
-  const { show, reaction } = useLabStore(s => ({
-    show: s.showWhatHappened,
-    reaction: s.whatHappenedReaction,
-  }), shallow)
+  const show = useLabStore(s => s.showWhatHappened)
+  const reaction = useLabStore(s => s.whatHappenedReaction)
 
   const depthMode = useLabStore(s => s.depthMode)
 

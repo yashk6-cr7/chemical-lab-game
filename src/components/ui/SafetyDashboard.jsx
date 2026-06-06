@@ -1,6 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shallow } from 'zustand/shallow'
 import useLabStore from '../../store/useLabStore'
 import safetyFacts from '../../data/safetyFacts.json'
 
@@ -55,8 +54,8 @@ function ComplianceBar({ pct, label, icon, total }) {
 const SafetyDashboard = memo(function SafetyDashboard() {
   const showSafetyDashboard = useLabStore(state => state.showSafetyDashboard)
   const toggleSafetyDashboard = useLabStore(state => state.toggleSafetyDashboard)
-  const safetyStats = useLabStore(state => state.safetyStats, shallow)
-  const accidentLog = useLabStore(state => state.accidentLog, shallow)
+  const safetyStats = useLabStore(state => state.safetyStats)
+  const accidentLog = useLabStore(state => state.accidentLog)
 
   const [factIndex, setFactIndex] = useState(() => Math.floor(Math.random() * safetyFacts.length))
   const [factRotating, setFactRotating] = useState(false)

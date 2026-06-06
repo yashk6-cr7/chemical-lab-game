@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { shallow } from 'zustand/shallow'
 import useLabStore, { useBeakers, useSafetyGear } from '../store/useLabStore'
 
 /**
@@ -12,7 +11,7 @@ export function useSimulation() {
   const safetyGear  = useSafetyGear()
   const depthMode   = useLabStore(state => state.depthMode)
   const pourIntoBeaker   = useLabStore(state => state.pourIntoBeaker)
-  const hotplate         = useLabStore(state => state.hotplate, shallow)
+  const hotplate         = useLabStore(state => state.hotplate)
 
   // Stable pour action — wraps store action (useCallback for referential stability)
   const pour = useCallback((fromChemical, toBeakerId, amount) => {

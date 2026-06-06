@@ -1,5 +1,4 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { shallow } from 'zustand/shallow'
 import useLabStore from '../../store/useLabStore'
 
 // ui.md: Glassmorphism base styling + Aceternity UI animations (framer-motion for HTML only)
@@ -8,7 +7,7 @@ const glassStyles = "bg-white/10 backdrop-blur-md border border-white/20 shadow-
 export default function HotplateUI() {
   const showHotplateUI = useLabStore(state => state.showHotplateUI)
   const setShowHotplateUI = useLabStore(state => state.setShowHotplateUI)
-  const hotplate = useLabStore(state => state.hotplate, shallow)
+  const hotplate = useLabStore(state => state.hotplate)
   const setHotplateTemp = useLabStore(state => state.setHotplateTemp)
   const toggleHotplate = useLabStore(state => state.toggleHotplate)
 

@@ -2,7 +2,6 @@
 import { useRef, useMemo, useCallback, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { shallow } from 'zustand/shallow'
 import useLabStore from '../../store/useLabStore'
 import { getHeatColor, heatBeaker, coolBeaker, checkThermalShock } from '../../systems/temperatureEngine'
 
@@ -41,12 +40,12 @@ const heatingCoilFrag = /* glsl */`
 const _dummy = new THREE.Object3D()
 
 export default function HotPlate({ position = [-1.5, 0.955, 0] }) {
-  const hotplate         = useLabStore(state => state.hotplate, shallow)
+  const hotplate         = useLabStore(state => state.hotplate)
   const setHotplateTemp  = useLabStore(state => state.setHotplateTemp)
   const placeOnHotplate  = useLabStore(state => state.placeBeakerOnHotplate)
   const updateHotSurface = useLabStore(state => state.updateHotplateSurfaceTemp)
   const updateBeakerTemp = useLabStore(state => state.updateBeakerTemp)
-  const beakers          = useLabStore(state => state.beakers, shallow)
+  const beakers          = useLabStore(state => state.beakers)
   const setHoverTarget   = useLabStore(state => state.setHoverTarget)
   const queueConsequence = useLabStore(state => state.queueConsequence)
   const setShowHotplateUI= useLabStore(state => state.setShowHotplateUI)
