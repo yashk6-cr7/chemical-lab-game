@@ -250,6 +250,88 @@ const useLabStore = create((set, get) => ({
   currentReactions: [],
   logbookEntries: initialLogbook,
 
+  // --- Phase 9: Mystery Substance & Advanced Lab ---
+  mysterySubstance: {
+    isActive: false,
+    substanceId: null,
+    label: 'Unknown A',
+    testsPerformed: [],
+    testResults: {},
+    hypothesis: null,
+    isSolved: false,
+    revealedName: null,
+  },
+  spawnMysterySubstance: () => {
+    const candidates = ['HCl', 'NaOH', 'CuSO4', 'NaCl', 'Ammonia', 'Na2S2O3']
+    const substanceId = candidates[Math.floor(Math.random() * candidates.length)]
+    set({
+      mysterySubstance: {
+        isActive: true, substanceId, label: 'Unknown A',
+        testsPerformed: [], testResults: {}, hypothesis: null,
+        isSolved: false, revealedName: null,
+      }
+    })
+  },
+  performMysteryTest: (testType, result) => set(s => ({
+    mysterySubstance: {
+      ...s.mysterySubstance,
+      testsPerformed: [...s.mysterySubstance.testsPerformed, testType],
+      testResults: { ...s.mysterySubstance.testResults, [testType]: result },
+    }
+  })),
+  setMysteryHypothesis: (chemId) => set(s => ({
+    mysterySubstance: { ...s.mysterySubstance, hypothesis: chemId }
+  })),
+  solveMystery: (correct) => set(s => ({
+    mysterySubstance: { ...s.mysterySubstance, isSolved: true,
+      revealedName: correct ? s.mysterySubstance.substanceId : null }
+  })),
+
+  flameTestActive: false,
+  flameTestChemicalId: null,
+  setFlameTest: (chemId) => set({ flameTestActive: !!chemId, flameTestChemicalId: chemId }),
+
+  titration: {
+    isActive: false,
+    buretteChemicalId: null,
+    flaskBeakerId: null,
+    volumeAdded: 0,
+    dropMode: false,
+    endpointReached: false,
+  },
+  setTitrationActive: (buretteChemId, flaskBeakerId) => set({
+    titration: { isActive: true, buretteChemicalId: buretteChemId,
+                 flaskBeakerId, volumeAdded: 0, dropMode: false, endpointReached: false }
+  }),
+  updateTitration: (updates) => set(s => ({
+    titration: { ...s.titration, ...updates }
+  })),
+
+  isPipetteActive: false,
+  pipetteContents: null, // { chemicalId, volume, color }
+  setPipetteActive: (v) => set({ isPipetteActive: v }),
+  setPipetteContents: (contents) => set({ pipetteContents: contents }),
+
+  unlockedChemicals: [],
+  reactionsDiscovered: 0,
+
+  labNotebook: {
+    show: false,
+    pages: [],
+    activePage: null,
+  },
+  setShowNotebook: (v) => set(s => ({ labNotebook: { ...s.labNotebook, show: v } })),
+  setNotebookPages: (pages) => set(s => ({ labNotebook: { ...s.labNotebook, pages } })),
+  addNotebookPage: (page) => set(s => ({
+    labNotebook: { ...s.labNotebook, pages: [...s.labNotebook.pages, page] }
+  })),
+  updateNotebookPage: (id, updates) => set(s => ({
+    labNotebook: {
+      ...s.labNotebook,
+      pages: s.labNotebook.pages.map(p => p.id === id ? { ...p, ...updates } : p)
+    }
+  })),
+
   queueConsequence: (event) => set(state => ({ pendingConsequences: [...state.pendingConsequences, event] })),
   processNextConsequence: () => set(state => ({ pendingConsequences: state.pendingConsequences.slice(1) })),
   clearConsequences: () => set({ pendingConsequences: [] }),
@@ -392,6 +474,12 @@ export const useFridge        = () => useLabStore(state => state.fridge)
 export const useFreezer       = () => useLabStore(state => state.freezer)
 export const useThermometer   = () => useLabStore(state => state.thermometer)
 export const useHoverLight    = () => useLabStore(state => state.hoverLight)
+
+// Phase 9 selectors
+export const useMysterySubstance = () => useLabStore(s => s.mysterySubstance)
+export const useTitration = () => useLabStore(s => s.titration)
+export const useLabNotebook = () => useLabStore(s => s.labNotebook)
+export const useUnlocked = () => useLabStore(s => s.unlockedChemicals)
 
 // Phase 8 selectors
 export const useDepthMode = () => useLabStore(s => s.depthMode)

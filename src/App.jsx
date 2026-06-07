@@ -43,6 +43,18 @@ import { DepthModeSelector } from './components/ui/DepthModeSelector'
 import { DiscoveryLogbook, LogbookTrigger } from './components/ui/DiscoveryLogbook'
 import { loadLogbookFromStorage } from './systems/logbook'
 
+// UI — Phase 9
+import { MysteryPanel } from './components/ui/MysteryPanel'
+import { TitrationPanel } from './components/ui/TitrationPanel'
+import { PipetteIndicator } from './components/ui/PipetteIndicator'
+import { LabNotebook, NotebookTrigger } from './components/ui/LabNotebook'
+
+// 3D — Phase 9
+import { TitrationSetup } from './components/equipment/TitrationSetup'
+import { Pipette } from './components/equipment/Pipette'
+import { MysterySubstance } from './components/chemicals/MysterySubstance'
+import { FlameTestEffect } from './components/effects/FlameTestEffect'
+
 import ErrorBoundary from './components/ErrorBoundary'
 import useLabStore from './store/useLabStore'
 import './index.css'
@@ -122,6 +134,14 @@ export default function App() {
     }
   }, [])
 
+  // Phase 9: Spawn Mystery Substance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      useLabStore.getState().spawnMysterySubstance()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <ErrorBoundary>
       <div className="w-screen h-screen relative bg-black overflow-hidden">
@@ -161,6 +181,11 @@ export default function App() {
 
             {/* Fire Extinguisher — Phase 7 interactive */}
             <FireExtinguisher />
+
+            {/* Phase 9 Equipment */}
+            <TitrationSetup />
+            <Pipette />
+            <MysterySubstance />
           </Physics>
 
           {/* Held bottle follows camera */}
@@ -171,6 +196,7 @@ export default function App() {
 
           {/* Reaction visual effects */}
           <EffectsManager />
+          <FlameTestEffect />
 
           {/* Camera dizziness from air quality (must be inside Canvas) */}
           <DizzinessEffect />
@@ -225,6 +251,13 @@ export default function App() {
             <WhatHappenedPanel />
             <DiscoveryLogbook />
             <LogbookTrigger />
+
+            {/* ── Phase 9 UI ── */}
+            <MysteryPanel />
+            <TitrationPanel />
+            <PipetteIndicator />
+            <LabNotebook />
+            <NotebookTrigger />
           </>
         )}
 

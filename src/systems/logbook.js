@@ -1,4 +1,5 @@
 import { getDepthContent } from './depthLayer'
+import { checkUnlocks } from './unlockSystem'
 import chemicalsData from '../data/chemicals.json'
 
 function getChemicalName(chemicalId) {
@@ -35,7 +36,18 @@ export function recordReaction(reactionResult, chemicals, store) {
   // Update store and persist
   const current = store.getState().logbookEntries || []
   const updated = [entry, ...current].slice(0, 500) // max 500 entries
-  store.setState({ logbookEntries: updated })
+  
+  const uniqueTypes = new Set([
+    ...current.map(e => e.reactionType),
+    entry.reactionType
+  ])
+
+  store.setState({ 
+    logbookEntries: updated,
+    reactionsDiscovered: uniqueTypes.size
+  })
+
+  checkUnlocks(store)
   
   try {
     localStorage.setItem('lab-logbook', JSON.stringify(updated))

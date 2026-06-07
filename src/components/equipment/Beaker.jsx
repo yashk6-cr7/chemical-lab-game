@@ -37,10 +37,55 @@ export default function Beaker({ beaker }) {
 
   const handleClick = useCallback((e) => {
     e.stopPropagation()
+    const store = useLabStore.getState()
+    
+    if (store.isPipetteActive) {
+      if (!store.pipetteContents) {
+        // Draw 5mL from beaker
+        if (beaker.totalVolume > 0 && beaker.contents.length > 0) {
+          // Simplification: take the most prevalent chemical or just a mix
+          const mainChem = beaker.contents[beaker.contents.length - 1]
+          store.setPipetteContents({
+            chemicalId: mainChem.chemicalId,
+            volume: 5,
+            color: beaker.mixedColor || '#ffffff'
+          })
+          // In a full simulation we would subtract volume from beaker here
+        }
+      } else {
+        // Deposit 5mL into beaker
+        import('../../systems/reactionEngine').then(({ calculateReaction }) => {
+          import('../../data/chemicals.json').then(({ default: chemicalsData }) => {
+            const pipChemData = chemicalsData.find(c => c.id === store.pipetteContents.chemicalId)
+            if (!pipChemData) return
+            
+            const reactionResult = calculateReaction(beaker.contents, {
+              ...pipChemData,
+              volume: store.pipetteContents.volume
+            })
+            
+            const updatedContents = [...beaker.contents, { chemicalId: pipChemData.id, volume: store.pipetteContents.volume }]
+            const updatedBeaker = {
+              ...beaker,
+              contents: updatedContents,
+              totalVolume: beaker.totalVolume + store.pipetteContents.volume,
+              mixedColor: reactionResult.colorChange || pipChemData.color,
+              reactionResult,
+              temperature: beaker.temperature + (reactionResult.exothermic ? 5 : 0)
+            }
+            
+            store.setBeakers(store.beakers.map(b => b.id === beaker.id ? updatedBeaker : b))
+            store.setPipetteContents(null) // empty pipette
+          })
+        })
+      }
+      return
+    }
+
     if (!isHoldingBeaker) {
       pickUpBeaker(beaker.id)
     }
-  }, [isHoldingBeaker, pickUpBeaker, beaker.id])
+  }, [isHoldingBeaker, pickUpBeaker, beaker])
 
   // physics.md: Handle high-velocity impacts
   const handleCollision = useCallback(() => {
