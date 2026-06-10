@@ -340,7 +340,12 @@ export default function Lab() {
           <Lighting />
           <Room />
 
-          <Physics gravity={[0, -9.81, 0]}>
+          {/* Physics — lower timestep on mobile saves ~30% CPU */}
+          <Physics
+            gravity={[0, -9.81, 0]}
+            timeStep={IS_MOBILE ? 1/30 : 1/60}
+            interpolate={!IS_MOBILE}
+          >
             <Bench />
             <FumeHood />
             <SafetyCorner />
@@ -371,11 +376,11 @@ export default function Lab() {
           <EffectsManager />
           <FlameTestEffect />
 
-          {/* Phase 10: Dust motes in window light */}
-          <DustMotesEffect />
+          {/* Phase 10: Dust motes — desktop only (expensive particle system) */}
+          {!IS_MOBILE && <DustMotesEffect />}
 
-          {/* Camera dizziness from air quality (must be inside Canvas) */}
-          <DizzinessEffect />
+          {/* Camera dizziness — desktop only (CSS transform sway) */}
+          {!IS_MOBILE && <DizzinessEffect />}
 
           {/* Player controls */}
           <PlayerControls />

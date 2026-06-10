@@ -3,6 +3,9 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib'
 import useLabStore from '../../store/useLabStore'
+import { isMobileDevice } from '../../utils/isMobile'
+
+const IS_MOBILE = isMobileDevice()
 
 // Initialize RectAreaLight uniforms once at module level (not inside component)
 RectAreaLightUniformsLib.init()
@@ -32,33 +35,28 @@ function getLightColor(t) {
   return _color.set('#FFFFFF')
 }
 
-// performance.md: Only 2 of 4 fluorescent panels cast shadows (1024x1024)
-// The other 2 are shadow-free fill lights — halves shadow map GPU cost
+// On mobile: no spotLight shadow (too expensive), just rectAreaLight fill
 function FluorescentPanel({ position, castsShadow = false }) {
+  const shadow = castsShadow && !IS_MOBILE
   return (
     <group position={position}>
-      {/* RectAreaLight — soft fluorescent quality. Does NOT support castShadow */}
-      <rectAreaLight
-        width={2}
-        height={0.1}
-        intensity={8}
-        color="#ffffff"
-        rotation={[Math.PI / 2, 0, 0]}
-      />
-      {/* Paired SpotLight for shadow casting — only on 2 of 4 panels */}
-      <spotLight
-        color="#fffef0"
-        intensity={1.2}
-        angle={0.6}
-        penumbra={0.4}
-        castShadow={castsShadow}
-        shadow-mapSize-width={castsShadow ? 1024 : 512}
-        shadow-mapSize-height={castsShadow ? 1024 : 512}
-        shadow-bias={-0.001}
-        shadow-normalBias={0.02}
-        position={[0, 0.01, 0]}
-        target-position={[0, -5, 0]}
-      />
+      <rectAreaLight width={2} height={0.1} intensity={IS_MOBILE ? 6 : 8} color="#ffffff" rotation={[Math.PI / 2, 0, 0]} />
+      {/* SpotLight for shadows — desktop only */}
+      {!IS_MOBILE && (
+        <spotLight
+          color="#fffef0"
+          intensity={1.2}
+          angle={0.6}
+          penumbra={0.4}
+          castShadow={shadow}
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
+          shadow-bias={-0.001}
+          shadow-normalBias={0.02}
+          position={[0, 0.01, 0]}
+          target-position={[0, -5, 0]}
+        />
+      )}
     </group>
   )
 }
@@ -86,9 +84,9 @@ function TimeOfDayLight() {
       color="#fff4d0"
       intensity={1.5}
       position={[-2, 4, -5]}
-      castShadow
-      shadow-mapSize-width={2048}
-      shadow-mapSize-height={2048}
+      castShadow={!IS_MOBILE}
+      shadow-mapSize-width={IS_MOBILE ? 512 : 1024}
+      shadow-mapSize-height={IS_MOBILE ? 512 : 1024}
       shadow-camera-near={0.5}
       shadow-camera-far={20}
       shadow-camera-left={-8}

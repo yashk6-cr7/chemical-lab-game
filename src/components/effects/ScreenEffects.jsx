@@ -192,23 +192,36 @@ export function ScreenEffects() {
 }
 
 // ─────────────────────────────────────────────
-// Dizziness effect — camera sway (inside Canvas)
+// Dizziness effect — CSS canvas sway (inside Canvas)
+// Uses CSS transform on the canvas DOM element
+// — does NOT touch camera.rotation.z which is locked to 0 by PlayerControls
 // ─────────────────────────────────────────────
 export function DizzinessEffect() {
   const airQuality = useLabStore(state => state.airQuality)
-  const { camera } = useThree()
+  const { gl } = useThree()
   const timeRef = useRef(0)
+  const rollRef = useRef(0)
 
   useFrame((_, delta) => {
     timeRef.current += delta
 
+    let targetRoll = 0
     if (airQuality < 30) {
-      const severity = (30 - airQuality) / 30
-      const amplitude = 0.005 + severity * 0.025
+      const severity  = (30 - airQuality) / 30
+      const amplitude = (0.3 + severity * 1.5) // degrees
       const frequency = 0.4 + severity * 0.4
-      camera.rotation.z = Math.sin(timeRef.current * frequency * Math.PI * 2) * amplitude
+      targetRoll = Math.sin(timeRef.current * frequency * Math.PI * 2) * amplitude
+    }
+
+    // Smooth lerp towards target roll
+    rollRef.current += (targetRoll - rollRef.current) * Math.min(1, delta * 5)
+
+    // Apply via CSS transform on the canvas element — zero camera conflicts
+    if (Math.abs(rollRef.current) > 0.01) {
+      gl.domElement.style.transform = `rotate(${rollRef.current.toFixed(3)}deg)`
+      gl.domElement.style.transformOrigin = 'center center'
     } else {
-      camera.rotation.z *= 0.92 // smooth recovery
+      gl.domElement.style.transform = ''
     }
   })
 
