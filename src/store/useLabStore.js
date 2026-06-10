@@ -113,6 +113,12 @@ const useLabStore = create((set, get) => ({
   hoverLight: { active: false, position: [0, 0, 0], color: '#ffffff' },
   setHoverLight: (data) => set({ hoverLight: data }),
 
+  // --- Third-person character state ---
+  characterPos: { x: 0, y: 0, z: 3.0 },
+  characterYaw: 0,
+  setCharacterPos: (pos) => set({ characterPos: pos }),
+  setCharacterYaw: (yaw) => set({ characterYaw: yaw }),
+
   // --- Safety & Environment ---
   safetyGear: {
     coat: false,
@@ -132,6 +138,15 @@ const useLabStore = create((set, get) => ({
   toggleGloves: () => set(state => ({
     safetyGear: { ...state.safetyGear, gloves: !state.safetyGear.gloves, glovesEquippedCount: !state.safetyGear.gloves ? state.safetyGear.glovesEquippedCount + 1 : state.safetyGear.glovesEquippedCount }
   })),
+
+  // One-way equip from physical gear stations
+  equipGear: (type) => set(state => {
+    const gear = state.safetyGear
+    if (type === 'coat')    return { safetyGear: { ...gear, coat:    true, coatEquippedCount:    gear.coatEquippedCount    + 1 } }
+    if (type === 'goggles') return { safetyGear: { ...gear, goggles: true, gogglesEquippedCount: gear.gogglesEquippedCount + 1 } }
+    if (type === 'gloves')  return { safetyGear: { ...gear, gloves:  true, glovesEquippedCount:  gear.glovesEquippedCount  + 1 } }
+    return {}
+  }),
 
   inFumeHood: false,
   setInFumeHood: (value) => set({ inFumeHood: value }),

@@ -55,14 +55,11 @@ export default function ChemicalPickup() {
   const putDownBottle = useLabStore(state => state.putDownBottle)
 
   const groupRef = useRef()
-  const { camera } = useThree()
 
   // Pre-allocated refs — avoids new THREE.Vector3() in useFrame (r3f.md critical rule)
-  const localPos   = useRef(new THREE.Vector3(0.25, -0.18, -0.45))
-  const targetPos  = useRef(new THREE.Vector3(0.25, -0.18, -0.45))
-  const prevCamPos = useRef(new THREE.Vector3())
-  const bobRef     = useRef(0)
-  const localRotX  = useRef(-0.2)
+  const localPos   = useRef(new THREE.Vector3(0.32, 0.82, -0.2)) // character hand offset
+  const targetPos  = useRef(new THREE.Vector3(0.32, 0.82, -0.2))
+  const localRotX  = useRef(0)
 
   // Keep activeChemical stable so texture doesn't flicker on quick pick/put
   const [activeChemical, setActiveChemical] = useState(null)
@@ -100,35 +97,34 @@ export default function ChemicalPickup() {
   useFrame((_, delta) => {
     if (!groupRef.current || !activeChemical) return
 
-    // --- Bobbing calculation (no allocations) ---
-    const camPos = camera.position
-    prevCamPos.current.y = camPos.y   // ignore vertical for speed
-    const speed = camPos.distanceTo(prevCamPos.current) / Math.max(delta, 0.001)
-    prevCamPos.current.copy(camPos)
-
-    if (speed > 0.5) bobRef.current += delta * 8
-    const bobOffset = speed > 0.5 ? Math.sin(bobRef.current) * 0.008 : 0
+    const { characterPos, characterYaw } = useLabStore.getState()
 
     // --- Spring target based on state ---
-    const tX = isPouring ? 0    : 0.25
-    const tY = isPouring ? -0.05 : -0.18 + bobOffset
-    const tZ = isPouring ? -0.6 : -0.45
-    const tRotX = isPouring ? -2.2 : -0.2
+    const tX = 0.32 // right hand x
+    const tY = isPouring ? 1.0 : 0.82 // lift when pouring
+    const tZ = isPouring ? -0.4 : -0.2 // forward when pouring
+    const tRotX = isPouring ? -2.0 : 0 // tilt forward when pouring
 
-    // Lerp local position (spring-like, no @react-spring needed for this tight loop)
+    // Lerp local position
     targetPos.current.set(tX, tY, tZ)
     localPos.current.lerp(targetPos.current, delta * 5)
     localRotX.current += (tRotX - localRotX.current) * delta * 5
 
-    // --- Camera-space → world-space transform (no allocations) ---
-    camera.getWorldQuaternion(_camQuat)
+    // --- Character-space → world-space transform ---
+    // Character facing uses characterYaw + Math.PI in Character.jsx
+    const yaw = characterYaw + Math.PI
+    _camQuat.setFromAxisAngle(new THREE.Vector3(0,1,0), yaw)
     _euler.set(localRotX.current, 0, 0)
     _localQuat.setFromEuler(_euler)
 
-    _worldPos.copy(localPos.current).applyQuaternion(_camQuat).add(camera.position)
+    // Base world position from character
+    _worldPos.set(characterPos.x, characterPos.y, characterPos.z)
+    
+    // Add rotated local hand offset
+    _worldPos.add(localPos.current.clone().applyQuaternion(_camQuat))
 
     groupRef.current.position.copy(_worldPos)
-    // Multiply in place: camQuat * localQuat
+    // Final rotation = character yaw * local pitch
     groupRef.current.quaternion.copy(_camQuat).multiply(_localQuat)
   })
 

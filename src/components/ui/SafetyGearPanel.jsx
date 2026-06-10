@@ -4,40 +4,13 @@ import useLabStore from '../../store/useLabStore'
 
 export default function SafetyGearPanel() {
   const safetyGear = useLabStore(state => state.safetyGear)
-  const toggleCoat = useLabStore(state => state.toggleCoat)
-  const toggleGoggles = useLabStore(state => state.toggleGoggles)
-  const toggleGloves = useLabStore(state => state.toggleGloves)
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Don't trigger if user is typing in an input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      
-      switch(e.key) {
-        case '1': toggleCoat(); break;
-        case '2': toggleGoggles(); break;
-        case '3': toggleGloves(); break;
-        default: break;
-      }
-    }
-    
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [toggleCoat, toggleGoggles, toggleGloves])
-
-  const renderItem = (name, hotkey, isOn, toggleFn, iconSvg, activeColorStr, activeBorderStr) => {
+  const renderItem = (name, isOn, iconSvg, activeColorStr, activeBorderStr) => {
     return (
-      <motion.button
-        onClick={toggleFn}
-        aria-label={`Toggle ${name}. Currently ${isOn ? 'on' : 'off'}`}
-        whileTap={{ scale: 0.95 }}
-        animate={isOn ? { scale: 1.02 } : { scale: 1 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      <div
         className={`flex items-center gap-4 w-full p-3 rounded-xl border transition-all duration-300 ${
           isOn 
             ? `${activeColorStr} ${activeBorderStr} shadow-[0_0_15px_rgba(255,255,255,0.1)]` 
-            : 'bg-transparent border-transparent hover:bg-white/5'
+            : 'bg-transparent border-transparent'
         }`}
       >
         <div className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
@@ -51,16 +24,16 @@ export default function SafetyGearPanel() {
             {name}
           </div>
           <div className="text-[10px] uppercase tracking-wider text-white/30 font-mono mt-0.5">
-            Press [{hotkey}]
+            {isOn ? 'Equipped' : 'Missing'}
           </div>
         </div>
         
         <div className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
           isOn ? 'bg-white/20 text-white' : 'bg-black/30 text-white/30'
         }`}>
-          {isOn ? 'ON' : 'OFF'}
+          {isOn ? '✓' : '✗'}
         </div>
-      </motion.button>
+      </div>
     )
   }
 
@@ -104,10 +77,16 @@ export default function SafetyGearPanel() {
       </div>
       
       <div className="flex flex-col gap-2">
-        {renderItem("Lab Coat", "1", safetyGear.coat, toggleCoat, coatIcon, "bg-blue-500/10", "border-blue-400/30")}
-        {renderItem("Goggles", "2", safetyGear.goggles, toggleGoggles, gogglesIcon, "bg-cyan-500/10", "border-cyan-400/30")}
-        {renderItem("Gloves", "3", safetyGear.gloves, toggleGloves, glovesIcon, "bg-green-500/10", "border-green-400/30")}
+        {renderItem("Lab Coat", safetyGear.coat, coatIcon, "bg-blue-500/10", "border-blue-400/30")}
+        {renderItem("Goggles", safetyGear.goggles, gogglesIcon, "bg-cyan-500/10", "border-cyan-400/30")}
+        {renderItem("Gloves", safetyGear.gloves, glovesIcon, "bg-green-500/10", "border-green-400/30")}
       </div>
+      
+      {(!safetyGear.coat || !safetyGear.goggles || !safetyGear.gloves) && (
+        <div className="mt-3 text-center text-xs text-white/50 bg-black/20 p-2 rounded-lg border border-white/5">
+          Walk to gear stations to equip
+        </div>
+      )}
     </div>
   )
 }
