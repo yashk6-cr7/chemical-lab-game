@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { EffectComposer, Bloom, Vignette, ToneMapping } from '@react-three/postprocessing'
@@ -33,7 +33,8 @@ import { MysterySubstance } from './components/chemicals/MysterySubstance'
 import { FlameTestEffect } from './components/effects/FlameTestEffect'
 
 // UI — Phase 1-6 (always visible, eager)
-import EnterOverlay from './components/ui/EnterOverlay'
+import PlayModeOverlay from './components/ui/PlayModeOverlay'
+import MobileActionBar from './components/ui/MobileActionBar'
 import ChemicalInfoPanel from './components/ui/ChemicalInfoPanel'
 import Crosshair from './components/ui/Crosshair'
 import HotplateUI from './components/ui/HotplateUI'
@@ -75,7 +76,10 @@ import { loadLogbookFromStorage } from './systems/logbook'
 
 import ErrorBoundary from './components/ErrorBoundary'
 import useLabStore from './store/useLabStore'
+import { isMobileDevice } from './utils/isMobile'
 import './index.css'
+
+const IS_MOBILE = isMobileDevice()
 
 // ── Shared hover light ───────────────────────────────────────────────────────
 function HoverLight() {
@@ -96,15 +100,16 @@ function HoverLight() {
 function InteractionHint() {
   const hoverTarget = useLabStore(state => state.hoverTarget)
   const HINTS = {
-    extinguisher: 'Click to pick up fire extinguisher  •  Right-click to spray',
-    eyewash: 'Click to use eyewash station',
-    shower: 'Click to activate emergency shower',
+    extinguisher: IS_MOBILE ? 'Tap to pick up fire extinguisher' : 'Press E • Right-click to spray',
+    eyewash:  IS_MOBILE ? 'Tap to use eyewash station'      : 'Press E to use eyewash station',
+    shower:   IS_MOBILE ? 'Tap to activate emergency shower' : 'Press E to activate emergency shower',
   }
   const hint = HINTS[hoverTarget]
   if (!hint) return null
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
-      <div className="bg-black/70 backdrop-blur-sm border border-white/20 rounded-xl px-5 py-2 text-white/80 text-sm font-medium">
+      <div className="bg-black/70 backdrop-blur-sm border border-white/20 rounded-xl px-5 py-2 text-white/80 text-sm font-medium flex items-center gap-2">
+        {IS_MOBILE && <span className="text-base">👆</span>}
         {hint}
       </div>
     </div>
@@ -215,12 +220,9 @@ function BenchStainBridge() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Lab() {
-  const [isEntered, setIsEntered] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const beakers = useLabStore(state => state.beakers)
+  const beakers  = useLabStore(state => state.beakers)
   const settings = useLabStore(state => state.settings)
-
-  const handleEnter = useCallback(() => setIsEntered(true), [])
 
   // Load logbook from storage on startup
   useEffect(() => {
@@ -298,6 +300,8 @@ export default function Lab() {
         </button>
         <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
+        <PlayModeOverlay />
+        <MobileActionBar />
         <OnboardingFlow />
 
         {/* ── 3D Canvas ── */}
@@ -377,52 +381,38 @@ export default function Lab() {
           </EffectComposer>
         </Canvas>
 
-        {/* ── 2D UI Layer ── */}
+        {/* ── 2D UI Layer — always shown, no gate ── */}
+        <ChemicalInfoPanel />
+        <Crosshair />
+        <HotplateUI />
 
-        {!isEntered && <EnterOverlay onEnter={handleEnter} />}
+        {/* ── Phase 7 UI ── */}
+        <SafetyGearPanel />
+        <AirQualityMeter />
+        <ConsequenceDisplay />
+        <SafetyDashboardTrigger />
+        <Suspense fallback={null}><SafetyDashboard /></Suspense>
 
-        {isEntered && (
-          <>
-            {/* ── Phase 1-6 UI ── */}
-            <ChemicalInfoPanel />
-            <Crosshair />
-            <HotplateUI />
+        <InteractionHint />
+        <ScreenEffects />
+        <AirQualitySimulator />
 
-            {/* ── Phase 7 UI ── */}
-            <SafetyGearPanel />
-            <AirQualityMeter />
-            <ConsequenceDisplay />
-            <SafetyDashboardTrigger />
-            <Suspense fallback={null}>
-              <SafetyDashboard />
-            </Suspense>
+        {/* ── Phase 8 UI ── */}
+        <DepthModeSelector />
+        <WhatHappenedPanel />
+        <LogbookTrigger />
+        <Suspense fallback={null}><DiscoveryLogbook /></Suspense>
 
-            <InteractionHint />
-            <ScreenEffects />
-            <AirQualitySimulator />
+        {/* ── Phase 9 UI ── */}
+        <MysteryPanel />
+        <TitrationPanel />
+        <PipetteIndicator />
+        <NotebookTrigger />
+        <Suspense fallback={null}><LabNotebook /></Suspense>
 
-            {/* ── Phase 8 UI ── */}
-            <DepthModeSelector />
-            <WhatHappenedPanel />
-            <LogbookTrigger />
-            <Suspense fallback={null}>
-              <DiscoveryLogbook />
-            </Suspense>
-
-            {/* ── Phase 9 UI ── */}
-            <MysteryPanel />
-            <TitrationPanel />
-            <PipetteIndicator />
-            <NotebookTrigger />
-            <Suspense fallback={null}>
-              <LabNotebook />
-            </Suspense>
-
-            {/* ── Phase 10 bridges (no visual output, just side effects) ── */}
-            <ReactionAudioBridge />
-            <BenchStainBridge />
-          </>
-        )}
+        {/* ── Phase 10 bridges ── */}
+        <ReactionAudioBridge />
+        <BenchStainBridge />
 
       </div>
     </ErrorBoundary>

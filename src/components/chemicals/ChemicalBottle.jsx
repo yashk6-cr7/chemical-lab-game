@@ -4,6 +4,8 @@ import { Html } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
+import { isPointerLocked } from '../../systems/pointerLock'
+import { isMobileDevice } from '../../utils/isMobile'
 
 const LABEL_VERT = `
 varying vec2 vUv;
@@ -84,8 +86,9 @@ function useLabelTexture(chemical) {
 
 export default function ChemicalBottle({ chemical, position, onSelect }) {
   const [hovered, setHovered] = useState(false)
-  const groupRef = useRef()                    // useRef, never useState for 3D refs (r3f.md)
+  const groupRef    = useRef()
   const labelMatRef = useRef()
+  const isMobile    = useRef(isMobileDevice())
 
   const selectedChemical = useLabStore(state => state.selectedChemical)
   const heldBottleId     = useLabStore(state => state.heldBottleId)
@@ -127,25 +130,44 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
     groupRef.current.position.y += (targetY - groupRef.current.position.y) * 10 * delta
   })
 
-  // r3f.md: always stopPropagation on all 3D pointer events
+  const hoveredRef = useRef(false)
+
   const handlePointerOver = useCallback((e) => {
     e.stopPropagation()
     setHovered(true)
+    hoveredRef.current = true
     setHoverTarget('bottle')
-    // performance.md: update shared hover light position instead of spawning a new PointLight
     setHoverLight({ active: true, position: [position[0], position[1] + 0.3, position[2] + 0.1], color: chemical.labelColor })
   }, [position, chemical.labelColor, setHoverTarget, setHoverLight])
 
   const handlePointerOut = useCallback((e) => {
     e.stopPropagation()
     setHovered(false)
+    hoveredRef.current = false
     setHoverTarget(null)
     setHoverLight({ active: false })
   }, [setHoverTarget, setHoverLight])
 
+  // Mobile: tap to pick up
+  // Desktop: E key to pick up (only when pointer is locked)
   const handleClick = useCallback((e) => {
     e.stopPropagation()
-    onSelect && onSelect(chemical)
+    if (isMobile.current) {
+      onSelect && onSelect(chemical)
+    }
+    // Desktop click just enters pointer lock — interaction is via E key
+  }, [onSelect, chemical])
+
+  // Desktop E key
+  useEffect(() => {
+    if (isMobile.current) return
+    const onKeyDown = (e) => {
+      if (e.code === 'KeyE' && hoveredRef.current && isPointerLocked()) {
+        onSelect && onSelect(chemical)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [onSelect, chemical])
 
   return (
@@ -291,6 +313,23 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
                 <p className="text-gray-300 text-xs italic leading-snug mb-2">
                   {chemical.easyDescription}
                 </p>
+
+                {/* Action hint — mobile shows Tap, desktop shows E key */}
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
+                  {isMobile.current ? (
+                    <>
+                      <span className="text-2xl">👆</span>
+                      <span className="text-white/70 text-xs font-semibold">Tap to pick up</span>
+                    </>
+                  ) : (
+                    <>
+                      <kbd className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded border border-white/30">E</kbd>
+                      <span className="text-white/60 text-xs">Pick up</span>
+                      <kbd className="ml-auto px-2 py-0.5 bg-white/10 text-white/50 text-xs font-bold rounded border border-white/20">Q</kbd>
+                      <span className="text-white/40 text-xs">Put down</span>
+                    </>
+                  )}
+                </div>
 
                 {isPending && (
                   <div className="bg-cyan-950/50 border border-cyan-500/30 rounded p-2 mt-2 flex items-start gap-2">
