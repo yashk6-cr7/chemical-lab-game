@@ -293,19 +293,4 @@ export const LabNotebook = memo(function LabNotebook() {
   )
 })
 
-export const NotebookTrigger = memo(function NotebookTrigger() {
-  const setShowNotebook = useLabStore(state => state.setShowNotebook)
-  
-  return (
-    <button
-      onClick={() => setShowNotebook(true)}
-      className="fixed bottom-4 right-20 z-40 w-12 h-12 bg-stone-200 hover:bg-stone-100 border border-stone-400 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 pointer-events-auto group"
-      title="Open Lab Notebook (N)"
-    >
-      <span className="text-xl">📔</span>
-      <span className="absolute -top-10 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-        Notebook (N)
-      </span>
-    </button>
-  )
-})
+export default LabNotebook

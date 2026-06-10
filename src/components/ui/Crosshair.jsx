@@ -24,7 +24,7 @@ export default function Crosshair() {
   }
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40">
+    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40" aria-hidden="true">
       <div className={`w-8 h-8 rounded-full border-2 ${borderColor} flex items-center justify-center transition-colors duration-200`}>
         {icon}
       </div>

@@ -30,6 +30,7 @@ export default function SafetyGearPanel() {
     return (
       <motion.button
         onClick={toggleFn}
+        aria-label={`Toggle ${name}. Currently ${isOn ? 'on' : 'off'}`}
         whileTap={{ scale: 0.95 }}
         animate={isOn ? { scale: 1.02 } : { scale: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -92,9 +93,13 @@ export default function SafetyGearPanel() {
   )
 
   return (
-    <div className="absolute top-6 left-6 w-64 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-4 shadow-xl z-40 select-none">
+    <div 
+      className="absolute top-6 left-6 w-64 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-4 shadow-xl z-40 select-none"
+      role="region"
+      aria-label="Safety Gear Controls"
+    >
       <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-4 px-2 flex justify-between items-center">
-        <span>Safety Gear</span>
+        <span aria-hidden="true">Safety Gear</span>
         <span className="w-2 h-2 rounded-full bg-green-500/50 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
       </div>
       

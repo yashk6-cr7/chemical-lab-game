@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { shallow } from 'zustand/shallow'
 
 import { calculateReaction } from '../systems/reactionEngine'
 import { runCascade } from '../systems/consequenceEngine'
@@ -10,6 +11,31 @@ const savedLogbook = localStorage.getItem('chemlab_logbook')
 const initialLogbook = savedLogbook ? JSON.parse(savedLogbook) : []
 
 const useLabStore = create((set, get) => ({
+  // --- Phase 11: Launch & Polish ---
+  onboardingComplete: false,
+  setOnboardingComplete: () => set({ onboardingComplete: true }),
+
+  settings: {
+    graphicsQuality: 'auto',   // 'auto' | 'high' | 'medium' | 'low'
+    fov: 75,
+    mouseSensitivity: 1.0,
+    masterVolume: 0.7,
+    effectsVolume: 1.0,
+    ambientVolume: 0.5,
+    reduceMotion: false,
+    colorblindMode: 'none',    // 'none' | 'deuteranopia' | 'protanopia'
+    highContrast: false,
+  },
+  updateSettings: (patch) => set(s => ({ settings: { ...s.settings, ...patch } })),
+
+  errorLog: [],
+  appendError: (entry) => set(s => ({
+    errorLog: [...s.errorLog, entry].slice(-50)
+  })),
+
+  showPerfMonitor: false,
+  togglePerfMonitor: () => set(s => ({ showPerfMonitor: !s.showPerfMonitor })),
+
   // --- Phase 10: Audio, Polish, Atmosphere ---
   audioEnabled: true,
   masterVolume: 0.7,
@@ -534,3 +560,8 @@ export const useAmbientVolume = () => useLabStore(s => s.ambientVolume)
 export const useBenchDamage = () => useLabStore(s => s.benchDamage)
 export const useTimeOfDay = () => useLabStore(s => s.timeOfDay)
 export const useWeather = () => useLabStore(s => s.weather)
+
+// Phase 11 selectors
+export const useSettings = () => useLabStore(s => s.settings, shallow)
+export const useOnboarding = () => useLabStore(s => s.onboardingComplete)
+export const useShowPerf = () => useLabStore(s => s.showPerfMonitor)

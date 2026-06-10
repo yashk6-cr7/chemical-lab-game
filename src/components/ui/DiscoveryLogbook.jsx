@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { shallow } from 'zustand/shallow'
 import useLabStore from '../../store/useLabStore'
+import { copyShareLink } from '../../systems/shareSystem'
 
 const TYPE_COLORS = {
   neutralization_violent:  'text-green-300 bg-green-500/10 border-green-500/20',
@@ -28,7 +29,7 @@ const FILTER_OPTIONS = [
 ]
 
 // ── Entry Card ────────────────────────────────────────────────────────────────
-const EntryCard = memo(function EntryCard({ entry, depthMode, onSelect }) {
+const EntryCard = memo(function EntryCard({ entry, depthMode, onSelect, setToast }) {
   const description = depthMode === 'easy'     ? entry.easyDescription
     : depthMode === 'moderate' ? entry.moderateDescription
     : entry.complexDescription
@@ -73,8 +74,22 @@ const EntryCard = memo(function EntryCard({ entry, depthMode, onSelect }) {
         </code>
       )}
 
-      <div className="text-[10px] text-white/30 hover:text-white/60 transition-colors text-right">
-        View details ›
+      <div className="flex justify-between items-center mt-1">
+        <button
+          onClick={async (e) => {
+            e.stopPropagation()
+            const ok = await copyShareLink(entry)
+            setToast(ok ? 'Link copied!' : 'Could not copy')
+            setTimeout(() => setToast(null), 2000)
+          }}
+          className="text-white/30 hover:text-white/60 text-xs transition-colors"
+          aria-label="Share this reaction"
+        >
+          🔗 Share
+        </button>
+        <div className="text-[10px] text-white/30 hover:text-white/60 transition-colors text-right">
+          View details ›
+        </div>
       </div>
     </motion.div>
   )
@@ -181,6 +196,7 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
   const setFilter    = useLabStore(s => s.setLogbookFilter)
 
   const [selectedEntry, setSelectedEntry] = useState(null)
+  const [toast, setToast] = useState(null)
 
   const handleClose = useCallback(() => {
     useLabStore.getState().setShowLogbook(false)
@@ -322,6 +338,7 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
                         entry={entry}
                         depthMode={depthMode}
                         onSelect={setSelectedEntry}
+                        setToast={setToast}
                       />
                     ))
                   )}
@@ -343,27 +360,24 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
           />
         )}
       </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[150]
+                       bg-white/10 backdrop-blur-md border border-white/20
+                       rounded-full px-4 py-1.5 text-white text-sm pointer-events-none"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 })
 
-// ── Logbook Trigger Button ───────────────────────────────────────────────────
-export const LogbookTrigger = memo(function LogbookTrigger() {
-  const show = useLabStore(s => s.showLogbook)
-  if (show) return null
-  return (
-    <motion.button
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      whileHover={{ scale: 1.05, x: -2 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={() => useLabStore.getState().setShowLogbook(true)}
-      className="fixed right-6 bottom-24 z-30 w-12 h-12 bg-white/10 hover:bg-white/20
-                 border border-white/20 rounded-full flex items-center justify-center
-                 shadow-lg shadow-black/50 backdrop-blur-md transition-colors pointer-events-auto"
-      title="Open Logbook"
-    >
-      <span className="text-xl">📓</span>
-    </motion.button>
-  )
-})
