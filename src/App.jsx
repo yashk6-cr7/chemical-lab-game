@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import useLabStore from './store/useLabStore'
 
@@ -11,12 +11,12 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
-      <BrowserRouter>
+      <Router>
         <Routes>
           <Route path="/" element={<Lab />} />
           <Route path="/teacher" element={<TeacherDashboard />} />
         </Routes>
-      </BrowserRouter>
+      </Router>
     </MotionConfig>
   )
 }
