@@ -1,5 +1,6 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { PerformanceMonitor } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
 import { EffectComposer, Bloom, Vignette, ToneMapping } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
@@ -221,6 +222,9 @@ function BenchStainBridge() {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Lab() {
   const [showSettings, setShowSettings] = useState(false)
+  // Adaptive DPR: start at 1 on mobile, 1.5 on desktop. PerformanceMonitor will lower it further if needed.
+  const [dpr, setDpr] = useState(() => IS_MOBILE ? 1 : Math.min(window.devicePixelRatio, 1.5))
+  const [showFX, setShowFX] = useState(!IS_MOBILE) // postprocessing OFF on mobile by default
   const beakers  = useLabStore(state => state.beakers)
   const settings = useLabStore(state => state.settings)
 
@@ -307,11 +311,11 @@ export default function Lab() {
         {/* ── 3D Canvas ── */}
         <Canvas
           frameloop="always"
-          shadows
-          dpr={[1, 2]}
-          camera={{ fov: settings.fov || 72, near: 0.1, far: 100 }}
+          shadows={!IS_MOBILE}          // shadows OFF on mobile — biggest perf win
+          dpr={dpr}                      // adaptive DPR
+          camera={{ fov: settings.fov || 72, near: 0.1, far: IS_MOBILE ? 30 : 100 }}
           gl={{
-            antialias: true,
+            antialias: !IS_MOBILE,       // antialias OFF on mobile
             powerPreference: 'high-performance',
             logarithmicDepthBuffer: false,
             alpha: false,
@@ -321,6 +325,18 @@ export default function Lab() {
           className="w-full h-full"
           style={{ position: 'absolute', top: 0, left: 0 }}
         >
+          {/* Auto-lower DPR / disable FX if FPS drops below 45 */}
+          <PerformanceMonitor
+            onDecline={() => {
+              setDpr(r => Math.max(0.75, r - 0.25))
+              if (!IS_MOBILE) setShowFX(false)
+            }}
+            onIncline={() => {
+              if (!IS_MOBILE) setDpr(r => Math.min(1.5, r + 0.25))
+            }}
+            flipflops={3}
+            factor={0.5}
+          />
           <Lighting />
           <Room />
 
@@ -367,18 +383,20 @@ export default function Lab() {
           {/* Perf monitor (canvas parts) */}
           <PerfMonitorCanvas />
 
-          {/* Postprocessing */}
-          <EffectComposer disableNormalPass>
-            <Bloom
-              luminanceThreshold={0.85}
-              luminanceSmoothing={0.2}
-              intensity={0.4}
-              radius={0.4}
-              mipmapBlur
-            />
-            <Vignette offset={0.4} darkness={0.4} eskil={false} />
-            <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-          </EffectComposer>
+          {/* Postprocessing — desktop only, auto-disabled if FPS drops */}
+          {showFX && (
+            <EffectComposer disableNormalPass>
+              <Bloom
+                luminanceThreshold={0.85}
+                luminanceSmoothing={0.2}
+                intensity={0.4}
+                height={IS_MOBILE ? 200 : 480}
+                mipmapBlur
+              />
+              <Vignette offset={0.4} darkness={0.4} eskil={false} />
+              <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+            </EffectComposer>
+          )}
         </Canvas>
 
         {/* ── 2D UI Layer — always shown, no gate ── */}

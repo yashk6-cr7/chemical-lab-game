@@ -1,199 +1,209 @@
 /* eslint-disable */
-import { useEffect, useRef, useState } from 'react'
+/**
+ * PlayerControls — stable FPS camera
+ *
+ * Root cause of tilt: mixing camera.quaternion + camera.rotation causes
+ * Three.js internal sync to introduce Z roll. Fix: use camera.rotation
+ * exclusively with YXZ order and force z=0 every frame.
+ *
+ * Root cause of hallucination: normalize() on zero vector → NaN.
+ * Fix: length check before normalize.
+ */
+import { useEffect, useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { isMobileDevice } from '../../utils/isMobile'
-import { setPointerLocked, isPointerLocked } from '../../systems/pointerLock'
-import useLabStore from '../../store/useLabStore'
+import { setPointerLocked } from '../../systems/pointerLock'
 
-const MOVE_SPEED     = 4
-const LOOK_SPEED     = 0.0015
-const TOUCH_LOOK_SPEED = 0.005
-const EYE_HEIGHT     = 1.75
-const BOUNDS         = { minX: -5.5, maxX: 5.5, minZ: -4.0, maxZ: 4.0 }
-const MAX_PITCH      = Math.PI / 2.5
+const MOVE_SPEED       = 4.5
+const LOOK_SPEED       = 0.0018
+const TOUCH_LOOK_SPEED = 0.004
+const EYE_HEIGHT       = 1.75
+const MAX_PITCH        = Math.PI / 2.2   // ~80 deg — never fully vertical
+const BOUNDS           = { minX: -5.5, maxX: 5.5, minZ: -4.0, maxZ: 4.0 }
+
+// Pre-allocated vectors — NEVER create new THREE objects inside useFrame
+const _move  = new THREE.Vector3()
+const _fwd   = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _UP    = new THREE.Vector3(0, 1, 0)
 
 export default function PlayerControls() {
   const { camera, gl } = useThree()
 
-  const keys             = useRef({})
-  const isLocked         = useRef(false)
-  const euler            = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
-  const velocity         = useRef(new THREE.Vector3())
-  const direction        = useRef(new THREE.Vector3())
-  const frontVector      = useRef(new THREE.Vector3())
-  const sideVector       = useRef(new THREE.Vector3())
+  const keys     = useRef({})
+  const isLocked = useRef(false)
+  const yaw      = useRef(0)   // Y rotation (left/right)
+  const pitch    = useRef(0)   // X rotation (up/down)
 
   const isMobile = useRef(isMobileDevice())
-  const touchState = useRef({
-    moveTouchId: null, lookTouchId: null,
-    moveOrigin: { x: 0, y: 0 },
-    moveVector: { x: 0, y: 0 },
+  const touch = useRef({
+    moveTouchId: null,
+    lookTouchId: null,
+    moveOrigin:  { x: 0, y: 0 },
+    moveDelta:   { x: 0, y: 0 }, // -1..1 normalized joystick
     lastLookPos: { x: 0, y: 0 },
   })
 
   useEffect(() => {
+    // ── Init ────────────────────────────────────────────────────────────
+    camera.rotation.order = 'YXZ'  // MUST be set — default XYZ causes gimbal tilt
     camera.position.set(0, EYE_HEIGHT, 3.5)
     camera.rotation.set(0, 0, 0)
-    euler.current.setFromQuaternion(camera.quaternion)
+    yaw.current   = 0
+    pitch.current = 0
 
     const canvas = gl.domElement
 
-    // ── Keyboard ──────────────────────────────────────────────────────────
-    const onKeyDown = (e) => {
-      keys.current[e.code] = true
+    // Keyboard
+    const onKeyDown = (e) => { keys.current[e.code] = true  }
+    const onKeyUp   = (e) => { keys.current[e.code] = false }
 
-      // ESC already exits pointer lock natively; we handle it in pointerlockchange.
-      // E key → interact (handled in ChemicalBottle, Beaker etc. via store)
-      if (e.code === 'KeyE' && isLocked.current) {
-        useLabStore.getState().triggerInteract?.()
-      }
-    }
-    const onKeyUp = (e) => { keys.current[e.code] = false }
-
-    // ── Pointer Lock ───────────────────────────────────────────────────────
-    // Only request lock when the player clicks the CANVAS and is NOT already locked.
-    // This separates "enter play mode" from "interact with object".
+    // Pointer lock — desktop only
     const onCanvasClick = () => {
       if (isMobile.current) return
-      if (!document.pointerLockElement) {
-        canvas.requestPointerLock()
-      }
+      if (!document.pointerLockElement) canvas.requestPointerLock()
     }
 
     const onLockChange = () => {
       const locked = document.pointerLockElement === canvas
       isLocked.current = locked
-      setPointerLocked(locked) // notify global system
-      // Clear keys when exiting lock so player doesn't keep walking
-      if (!locked) keys.current = {}
+      setPointerLocked(locked)
+      if (!locked) keys.current = {}  // clear all keys on unlock
     }
 
-    // Mouse look — only when locked
+    // Mouse look — only accumulate, apply once in useFrame
     const onMouseMove = (e) => {
       if (!isLocked.current || isMobile.current) return
-      euler.current.y -= e.movementX * LOOK_SPEED
-      euler.current.x -= e.movementY * LOOK_SPEED
-      euler.current.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.current.x))
-      camera.quaternion.setFromEuler(euler.current)
+      yaw.current   -= e.movementX * LOOK_SPEED
+      pitch.current -= e.movementY * LOOK_SPEED
+      pitch.current  = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch.current))
     }
 
-    // ── Mobile Touch ───────────────────────────────────────────────────────
-    const handleTouchStart = (e) => {
-      if (!isMobile.current) return
-      const halfWidth = window.innerWidth / 2
+    // Touch controls — mobile
+    const halfW = () => window.innerWidth / 2
+
+    const onTouchStart = (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
-        if (t.clientX < halfWidth && touchState.current.moveTouchId === null) {
-          touchState.current.moveTouchId = t.identifier
-          touchState.current.moveOrigin = { x: t.clientX, y: t.clientY }
-        } else if (t.clientX >= halfWidth && touchState.current.lookTouchId === null) {
-          touchState.current.lookTouchId = t.identifier
-          touchState.current.lastLookPos = { x: t.clientX, y: t.clientY }
+        if (t.clientX < halfW() && touch.current.moveTouchId === null) {
+          touch.current.moveTouchId = t.identifier
+          touch.current.moveOrigin  = { x: t.clientX, y: t.clientY }
+          touch.current.moveDelta   = { x: 0, y: 0 }
+        } else if (t.clientX >= halfW() && touch.current.lookTouchId === null) {
+          touch.current.lookTouchId = t.identifier
+          touch.current.lastLookPos = { x: t.clientX, y: t.clientY }
         }
       }
     }
 
-    const handleTouchMove = (e) => {
-      if (!isMobile.current) return
+    const onTouchMove = (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
-        if (t.identifier === touchState.current.moveTouchId) {
-          const dx = t.clientX - touchState.current.moveOrigin.x
-          const dy = t.clientY - touchState.current.moveOrigin.y
-          const maxR = 50
+
+        if (t.identifier === touch.current.moveTouchId) {
+          const dx   = t.clientX - touch.current.moveOrigin.x
+          const dy   = t.clientY - touch.current.moveOrigin.y
+          const maxR = 55
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const scale = dist > maxR ? maxR / dist : 1
-          touchState.current.moveVector.x = (dx * scale) / maxR
-          touchState.current.moveVector.y = (dy * scale) / maxR
+          const s    = dist > maxR ? maxR / dist : 1
+          touch.current.moveDelta = { x: (dx * s) / maxR, y: (dy * s) / maxR }
         }
-        if (t.identifier === touchState.current.lookTouchId) {
-          const dx = t.clientX - touchState.current.lastLookPos.x
-          const dy = t.clientY - touchState.current.lastLookPos.y
-          euler.current.y -= dx * TOUCH_LOOK_SPEED
-          euler.current.x -= dy * TOUCH_LOOK_SPEED
-          euler.current.x = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, euler.current.x))
-          camera.quaternion.setFromEuler(euler.current)
-          touchState.current.lastLookPos = { x: t.clientX, y: t.clientY }
+
+        if (t.identifier === touch.current.lookTouchId) {
+          const dx = t.clientX - touch.current.lastLookPos.x
+          const dy = t.clientY - touch.current.lastLookPos.y
+          yaw.current   -= dx * TOUCH_LOOK_SPEED
+          pitch.current -= dy * TOUCH_LOOK_SPEED
+          pitch.current  = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch.current))
+          touch.current.lastLookPos = { x: t.clientX, y: t.clientY }
         }
       }
     }
 
-    const handleTouchEnd = (e) => {
-      if (!isMobile.current) return
+    const onTouchEnd = (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
-        if (t.identifier === touchState.current.moveTouchId) {
-          touchState.current.moveTouchId = null
-          touchState.current.moveVector = { x: 0, y: 0 }
+        if (t.identifier === touch.current.moveTouchId) {
+          touch.current.moveTouchId = null
+          touch.current.moveDelta   = { x: 0, y: 0 }
         }
-        if (t.identifier === touchState.current.lookTouchId) {
-          touchState.current.lookTouchId = null
+        if (t.identifier === touch.current.lookTouchId) {
+          touch.current.lookTouchId = null
         }
       }
     }
 
-    // Use canvas click (not pointerdown) to enter lock mode
     canvas.addEventListener('click', onCanvasClick)
     document.addEventListener('pointerlockchange', onLockChange)
     document.addEventListener('mousemove', onMouseMove)
     window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('touchstart', handleTouchStart, { passive: true })
-    window.addEventListener('touchmove',  handleTouchMove,  { passive: true })
-    window.addEventListener('touchend',   handleTouchEnd,   { passive: true })
-    window.addEventListener('touchcancel',handleTouchEnd,   { passive: true })
+    window.addEventListener('keyup',   onKeyUp)
+    window.addEventListener('touchstart',  onTouchStart,  { passive: true })
+    window.addEventListener('touchmove',   onTouchMove,   { passive: true })
+    window.addEventListener('touchend',    onTouchEnd,    { passive: true })
+    window.addEventListener('touchcancel', onTouchEnd,    { passive: true })
 
     return () => {
       canvas.removeEventListener('click', onCanvasClick)
       document.removeEventListener('pointerlockchange', onLockChange)
       document.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchmove',  handleTouchMove)
-      window.removeEventListener('touchend',   handleTouchEnd)
-      window.removeEventListener('touchcancel',handleTouchEnd)
+      window.removeEventListener('keyup',   onKeyUp)
+      window.removeEventListener('touchstart',  onTouchStart)
+      window.removeEventListener('touchmove',   onTouchMove)
+      window.removeEventListener('touchend',    onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchEnd)
     }
   }, [camera, gl])
 
   useFrame((_, delta) => {
-    // Movement only when pointer is locked (desktop) or touch joystick is active (mobile)
-    const canMove = isMobile.current
-      ? touchState.current.moveTouchId !== null
-      : isLocked.current
+    // ── 1. Apply camera rotation ─────────────────────────────────────────
+    // Use camera.rotation directly — never touch camera.quaternion
+    // Force z=0 every frame to PREVENT any roll/tilt from accumulating
+    camera.rotation.y = yaw.current
+    camera.rotation.x = pitch.current
+    camera.rotation.z = 0  // ← this single line kills all camera tilt
 
+    // ── 2. Movement gate ─────────────────────────────────────────────────
+    const mobile   = isMobile.current
+    const canMove  = mobile ? touch.current.moveTouchId !== null : isLocked.current
     if (!canMove) return
 
-    const k = keys.current
-    let fw = (k['KeyS'] || k['ArrowDown']  ? 1 : 0) - (k['KeyW'] || k['ArrowUp']   ? 1 : 0)
+    // Gather input axes (-1..1)
+    const k  = keys.current
     let sd = (k['KeyD'] || k['ArrowRight'] ? 1 : 0) - (k['KeyA'] || k['ArrowLeft'] ? 1 : 0)
+    let fw = (k['KeyS'] || k['ArrowDown']  ? 1 : 0) - (k['KeyW'] || k['ArrowUp']   ? 1 : 0)
 
-    if (isMobile.current && touchState.current.moveTouchId !== null) {
-      sd = touchState.current.moveVector.x
-      fw = touchState.current.moveVector.y
+    if (mobile) {
+      sd = touch.current.moveDelta.x
+      fw = touch.current.moveDelta.y
     }
 
-    frontVector.current.set(0, 0, fw)
-    sideVector.current.set(sd, 0, 0)
+    // ── KEY FIX: never normalize a zero vector → prevents NaN teleport ───
+    const len = Math.sqrt(sd * sd + fw * fw)
+    if (len < 0.001) return
 
-    direction.current
-      .subVectors(frontVector.current, sideVector.current)
-      .normalize()
-      .multiplyScalar(MOVE_SPEED)
-      .applyEuler(camera.rotation)
+    // Get camera's flat forward / right vectors (ignore pitch so you don't fly)
+    camera.getWorldDirection(_fwd)
+    _fwd.y = 0
+    _fwd.normalize()
 
-    if (isMobile.current && touchState.current.moveTouchId !== null) {
-      const mag = Math.sqrt(sd * sd + fw * fw)
-      direction.current.multiplyScalar(mag)
-    }
+    _right.crossVectors(_fwd, _UP).normalize()
 
-    velocity.current.x = direction.current.x
-    velocity.current.z = direction.current.z
+    // Combine strafe + forward, scale by joystick magnitude (analog feel)
+    const speed = MOVE_SPEED * Math.min(len, 1.0)
+    const inv   = 1 / len
+    _move
+      .copy(_fwd).multiplyScalar(-fw * inv * speed)   // forward/back
+      .addScaledVector(_right, sd * inv * speed)       // left/right
 
-    camera.position.x = Math.max(BOUNDS.minX, Math.min(BOUNDS.maxX, camera.position.x + velocity.current.x * delta))
-    camera.position.z = Math.max(BOUNDS.minZ, Math.min(BOUNDS.maxZ, camera.position.z + velocity.current.z * delta))
-    camera.position.y = EYE_HEIGHT
+    // Clamp delta to avoid teleport on lag spikes / tab switches
+    const dt = Math.min(delta, 0.05)
+
+    camera.position.x = Math.max(BOUNDS.minX, Math.min(BOUNDS.maxX, camera.position.x + _move.x * dt))
+    camera.position.z = Math.max(BOUNDS.minZ, Math.min(BOUNDS.maxZ, camera.position.z + _move.z * dt))
+    camera.position.y = EYE_HEIGHT  // locked to eye height always
   })
 
   return null
