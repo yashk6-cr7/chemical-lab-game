@@ -8,3 +8,13 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Phase 10: Register Service Worker for offline caching
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/chemical-lab-game/sw.js').catch(err => {
+      // Silently fail — SW is a progressive enhancement
+      console.warn('SW registration failed:', err)
+    })
+  })
+}

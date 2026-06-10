@@ -1,7 +1,110 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
+import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import { useRefDisposal } from '../../utils/disposal'
 import HotPlate from '../equipment/HotPlate'
+
+// ─── Bench Damage: canvas texture compositing ───────────────────────────────
+function useDamageTexture() {
+  const canvasRef = useRef(null)
+  const textureRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = 512
+    canvasRef.current = canvas
+    textureRef.current = new THREE.CanvasTexture(canvas)
+    return () => { textureRef.current?.dispose() }
+  }, [])
+
+  const paintStain = useCallback(({ x, z, radius, color, opacity }) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    // world: bench x ∈ [-3,3], z ∈ [-0.5,0.5] → UV [0,1]
+    const u = (x + 3) / 6
+    const v = (z + 0.5) / 1.0
+    const px = u * 512, py = v * 512
+    const r = (radius / 6) * 512
+    const hex = Math.round(opacity * 255).toString(16).padStart(2, '0')
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, r)
+    grad.addColorStop(0, color + hex)
+    grad.addColorStop(1, color + '00')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(px, py, r, 0, Math.PI * 2)
+    ctx.fill()
+    if (textureRef.current) textureRef.current.needsUpdate = true
+  }, [])
+
+  const paintScorch = useCallback(({ x, z, radius }) => {
+    paintStain({ x, z, radius, color: '#1a1000', opacity: 0.85 })
+  }, [paintStain])
+
+  return { textureRef, paintStain, paintScorch }
+}
+
+// Cracks rendered as thin cylinder InstancedMesh
+function BenchCracks({ cracks }) {
+  const meshRef = useRef()
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+
+  useEffect(() => {
+    if (!meshRef.current || !cracks.length) return
+    cracks.forEach((c, i) => {
+      const dx = c.x2 - c.x1, dz = c.z2 - c.z1
+      const len = Math.sqrt(dx * dx + dz * dz)
+      const mx = (c.x1 + c.x2) / 2
+      const mz = (c.z1 + c.z2) / 2
+      dummy.position.set(mx, 0.931, mz)
+      dummy.rotation.set(-Math.PI / 2, 0, Math.atan2(dx, dz))
+      dummy.scale.set(1, len / 0.003, 1)
+      dummy.updateMatrix()
+      meshRef.current.setMatrixAt(i, dummy.matrix)
+    })
+    // Hide unused slots
+    for (let i = cracks.length; i < 5; i++) {
+      dummy.scale.setScalar(0)
+      dummy.updateMatrix()
+      meshRef.current.setMatrixAt(i, dummy.matrix)
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true
+    return () => {
+      meshRef.current?.geometry?.dispose()
+      meshRef.current?.material?.dispose()
+    }
+  }, [cracks, dummy])
+
+  if (!cracks.length) return null
+  return (
+    <instancedMesh ref={meshRef} args={[null, null, 5]}>
+      <cylinderGeometry args={[0.003, 0.003, 1, 4]} />
+      <meshBasicMaterial color="#111111" />
+    </instancedMesh>
+  )
+}
+
+// Damage overlay plane sitting just above bench top
+function BenchDamageLayer({ textureRef }) {
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({
+    transparent: true,
+    depthWrite: false,
+    opacity: 1,
+  }), [])
+
+  useEffect(() => {
+    if (textureRef.current) mat.map = textureRef.current
+    return () => mat.dispose()
+  }, [mat, textureRef])
+
+  return (
+    <mesh position={[0, 0.932, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[6, 1]} />
+      <primitive object={mat} attach="material" />
+    </mesh>
+  )
+}
 
 // Cabinet door handle (tiny silver bar)
 function CabinetHandle({ position }) {
@@ -121,6 +224,22 @@ export default function Bench() {
   const isHoldingBeaker = useLabStore(state => state.isHoldingBeaker)
   const putDownBeaker = useLabStore(state => state.putDownBeaker)
   const heldBeakerId = useLabStore(state => state.heldBeakerId)
+  const benchDamage = useLabStore(state => state.benchDamage)
+
+  const { textureRef, paintStain, paintScorch } = useDamageTexture()
+
+  // Paint new stains/scorches when store changes
+  const prevStainCount = useRef(0)
+  const prevScorchCount = useRef(0)
+  useEffect(() => {
+    const newStains = benchDamage.stains.slice(prevStainCount.current)
+    newStains.forEach(paintStain)
+    prevStainCount.current = benchDamage.stains.length
+
+    const newScorches = benchDamage.scorchMarks.slice(prevScorchCount.current)
+    newScorches.forEach(paintScorch)
+    prevScorchCount.current = benchDamage.scorchMarks.length
+  }, [benchDamage.stains, benchDamage.scorchMarks, paintStain, paintScorch])
 
   const handleBenchClick = (e) => {
     e.stopPropagation()
@@ -195,6 +314,10 @@ export default function Bench() {
 
         {/* HOTPLATE — left area of main bench */}
         <HotPlate position={[-1.5, 0.955, 0]} />
+
+        {/* Damage layers — canvas stains + crack instances */}
+        <BenchDamageLayer textureRef={textureRef} />
+        <BenchCracks cracks={benchDamage.cracks} />
       </group>
 
       {/* ====================================================

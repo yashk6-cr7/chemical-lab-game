@@ -1,7 +1,36 @@
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib'
+import useLabStore from '../../store/useLabStore'
 
 // Initialize RectAreaLight uniforms once at module level (not inside component)
 RectAreaLightUniformsLib.init()
+
+// Pure function — no allocations on every call
+const _color = new THREE.Color()
+const stops = [
+  { t: 0,    r: 1.000, g: 0.702, b: 0.278 }, // #FFB347 dawn
+  { t: 0.25, r: 1.000, g: 0.957, b: 0.839 }, // #FFF4D6 morning
+  { t: 0.5,  r: 1.000, g: 1.000, b: 1.000 }, // #FFFFFF noon
+  { t: 0.75, r: 1.000, g: 0.973, b: 0.941 }, // #FFF8F0 afternoon
+  { t: 1.0,  r: 1.000, g: 0.549, b: 0.259 }, // #FF8C42 dusk
+]
+
+function getLightColor(t) {
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (t >= stops[i].t && t <= stops[i + 1].t) {
+      const f = (t - stops[i].t) / (stops[i + 1].t - stops[i].t)
+      _color.setRGB(
+        stops[i].r + (stops[i + 1].r - stops[i].r) * f,
+        stops[i].g + (stops[i + 1].g - stops[i].g) * f,
+        stops[i].b + (stops[i + 1].b - stops[i].b) * f,
+      )
+      return _color
+    }
+  }
+  return _color.set('#FFFFFF')
+}
 
 // performance.md: Only 2 of 4 fluorescent panels cast shadows (1024x1024)
 // The other 2 are shadow-free fill lights — halves shadow map GPU cost
@@ -34,6 +63,44 @@ function FluorescentPanel({ position, castsShadow = false }) {
   )
 }
 
+// Window directional light that reacts to time-of-day
+function TimeOfDayLight() {
+  const lightRef = useRef()
+
+  useFrame((_, delta) => {
+    if (!lightRef.current) return
+    // Advance time — read/write via getState to avoid re-renders
+    const store = useLabStore.getState()
+    const next = (store.timeOfDay + delta / 1200) % 1  // 20 min cycle
+    store.setTimeOfDay(next)
+
+    const color = getLightColor(next)
+    lightRef.current.color.copy(color)
+    // dim at dawn/dusk, bright at noon
+    lightRef.current.intensity = 0.3 + Math.sin(next * Math.PI) * 1.2
+  })
+
+  return (
+    <directionalLight
+      ref={lightRef}
+      color="#fff4d0"
+      intensity={1.5}
+      position={[-2, 4, -5]}
+      castShadow
+      shadow-mapSize-width={2048}
+      shadow-mapSize-height={2048}
+      shadow-camera-near={0.5}
+      shadow-camera-far={20}
+      shadow-camera-left={-8}
+      shadow-camera-right={8}
+      shadow-camera-top={8}
+      shadow-camera-bottom={-8}
+      shadow-bias={-0.0005}
+      shadow-normalBias={0.02}
+    />
+  )
+}
+
 export default function Lighting() {
   return (
     <>
@@ -48,24 +115,8 @@ export default function Lighting() {
       <FluorescentPanel position={[-3, 3.48, 1]}  castsShadow={false} />
       <FluorescentPanel position={[3, 3.48, 1]}   castsShadow={false} />
 
-      {/* === WINDOW SUNLIGHT (primary directional — max 2048x2048 per performance.md) ===
-          shadow.normalBias prevents shadow acne on flat surfaces */}
-      <directionalLight
-        color="#fff4d0"
-        intensity={1.5}
-        position={[-2, 4, -5]}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.5}
-        shadow-camera-far={20}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-        shadow-bias={-0.0005}
-        shadow-normalBias={0.02}
-      />
+      {/* === WINDOW SUNLIGHT — time-of-day driven === */}
+      <TimeOfDayLight />
 
       {/* Secondary fill directional — no shadows (performance.md: secondary = no shadow) */}
       <directionalLight

@@ -10,6 +10,44 @@ const savedLogbook = localStorage.getItem('chemlab_logbook')
 const initialLogbook = savedLogbook ? JSON.parse(savedLogbook) : []
 
 const useLabStore = create((set, get) => ({
+  // --- Phase 10: Audio, Polish, Atmosphere ---
+  audioEnabled: true,
+  masterVolume: 0.7,
+  effectsVolume: 1.0,
+  ambientVolume: 0.5,
+  setAudioEnabled: (v) => set({ audioEnabled: v }),
+  setMasterVolume: (v) => set({ masterVolume: v }),
+
+  timeOfDay: 0.5,           // 0=dawn, 0.5=noon, 1=dusk, cycles automatically
+  setTimeOfDay: (v) => set({ timeOfDay: v }),
+
+  benchDamage: {
+    stains: [],             // [{ x, z, radius, color, opacity }]
+    scorchMarks: [],        // [{ x, z, radius, intensity }]
+    cracks: [],             // [{ x1, z1, x2, z2 }]
+  },
+  addBenchStain: (stain) => set(s => ({
+    benchDamage: { ...s.benchDamage, stains: [...s.benchDamage.stains, stain].slice(-30) }
+  })),
+  addScorchMark: (mark) => set(s => ({
+    benchDamage: { ...s.benchDamage, scorchMarks: [...s.benchDamage.scorchMarks, mark].slice(-10) }
+  })),
+  addCrack: (crack) => set(s => ({
+    benchDamage: { ...s.benchDamage, cracks: [...s.benchDamage.cracks, crack].slice(-5) }
+  })),
+  clearBenchDamage: () => set({ benchDamage: { stains: [], scorchMarks: [], cracks: [] } }),
+
+  bottleUseCounts: {},      // { bottleId: number }
+  incrementBottleUse: (id) => set(s => ({
+    bottleUseCounts: { ...s.bottleUseCounts, [id]: (s.bottleUseCounts[id] || 0) + 1 }
+  })),
+
+  weather: 'clear',         // 'clear' | 'cloudy' | 'rain'
+  setWeather: (w) => set({ weather: w }),
+
+  dustMotesEnabled: true,
+  setDustMotesEnabled: (v) => set({ dustMotesEnabled: v }),
+
   depthMode: 'easy', // 'easy' | 'moderate' | 'complex'
   setDepthMode: (mode) => set({ depthMode: mode }),
 
@@ -354,13 +392,14 @@ const useLabStore = create((set, get) => ({
   // --- Actions ---
   setHoverTarget: (target) => set({ hoverTarget: target }),
 
-  pickUpBottle: (chemical) => set({
+  pickUpBottle: (chemical) => set(state => ({
     heldChemical: chemical,
     heldBottleId: chemical.id,
     isHoldingBottle: true,
     isHoldingBeaker: false,
-    heldBeakerId: null
-  }),
+    heldBeakerId: null,
+    bottleUseCounts: { ...state.bottleUseCounts, [chemical.id]: (state.bottleUseCounts[chemical.id] || 0) + 1 }
+  })),
   putDownBottle: () => set({ heldChemical: null, heldBottleId: null, isHoldingBottle: false }),
 
   pickUpBeaker: (beakerId) => set({
@@ -486,3 +525,12 @@ export const useDepthMode = () => useLabStore(s => s.depthMode)
 export const useWhatHappened = () => useLabStore(s => s.whatHappenedReaction)
 export const useLogbook = () => useLabStore(s => s.logbookEntries)
 export const usePendingSetup = () => useLabStore(s => s.pendingExperimentSetup)
+
+// Phase 10 selectors (atomic to avoid Zustand v5 infinite loops)
+export const useAudioEnabled = () => useLabStore(s => s.audioEnabled)
+export const useMasterVolume = () => useLabStore(s => s.masterVolume)
+export const useEffectsVolume = () => useLabStore(s => s.effectsVolume)
+export const useAmbientVolume = () => useLabStore(s => s.ambientVolume)
+export const useBenchDamage = () => useLabStore(s => s.benchDamage)
+export const useTimeOfDay = () => useLabStore(s => s.timeOfDay)
+export const useWeather = () => useLabStore(s => s.weather)

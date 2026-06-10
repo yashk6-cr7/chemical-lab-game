@@ -1,5 +1,107 @@
-import { useRef } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { useRefDisposal } from '../../utils/disposal'
+import useLabStore from '../../store/useLabStore'
+
+// Sky color stops — same approach as Lighting.jsx, reuse lerp
+const skyStops = [
+  { t: 0,    color: new THREE.Color('#FF9B54') }, // dawn
+  { t: 0.25, color: new THREE.Color('#C9E8FF') }, // morning
+  { t: 0.5,  color: new THREE.Color('#87CEEB') }, // noon
+  { t: 0.75, color: new THREE.Color('#B0D8FF') }, // afternoon
+  { t: 1.0,  color: new THREE.Color('#FF6B35') }, // dusk
+]
+const _skyCol = new THREE.Color()
+function getSkyColor(t) {
+  for (let i = 0; i < skyStops.length - 1; i++) {
+    if (t >= skyStops[i].t && t <= skyStops[i + 1].t) {
+      const f = (t - skyStops[i].t) / (skyStops[i + 1].t - skyStops[i].t)
+      return _skyCol.copy(skyStops[i].color).lerp(skyStops[i + 1].color, f)
+    }
+  }
+  return _skyCol.set('#87CEEB')
+}
+
+const WEATHER_VERT = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const WEATHER_FRAG = `
+uniform float uTime;
+uniform int uWeather;
+uniform vec3 uSkyColor;
+varying vec2 vUv;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+             mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+}
+float cloudNoise(vec2 p) {
+  float v = 0.0; float a = 0.5;
+  for (int i = 0; i < 4; i++) {
+    v += a * noise(p);
+    p = p * 2.1 + vec2(uTime * 0.02, 0.0);
+    a *= 0.5;
+  }
+  return v;
+}
+float rainStreak(vec2 uv) {
+  float x = fract(uv.x * 40.0 + floor(uTime * 0.5) * 0.37);
+  float y = fract(uv.y * 0.3 - uTime * 0.8);
+  return step(0.97, x) * step(y, 0.4) * (1.0 - y / 0.4) * 0.4;
+}
+void main() {
+  vec3 sky = uSkyColor;
+  if (uWeather >= 1) {
+    float clouds = cloudNoise(vUv * 3.0);
+    sky = mix(sky, vec3(0.85, 0.87, 0.9), clouds * 0.65);
+  }
+  float rain = uWeather == 2 ? rainStreak(vUv) : 0.0;
+  gl_FragColor = vec4(sky + rain, 0.95);
+}
+`
+
+function WeatherWindow({ position }) {
+  const matRef = useRef()
+
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: WEATHER_VERT,
+    fragmentShader: WEATHER_FRAG,
+    uniforms: {
+      uTime:     { value: 0 },
+      uWeather:  { value: 0 },
+      uSkyColor: { value: new THREE.Color('#87CEEB') },
+    },
+    transparent: true,
+    depthWrite: false,
+  }), [])
+
+  useEffect(() => () => mat.dispose(), [mat])
+
+  useFrame(({ clock }) => {
+    const store = useLabStore.getState()
+    mat.uniforms.uTime.value = clock.getElapsedTime()
+    mat.uniforms.uWeather.value = store.weather === 'rain' ? 2 : store.weather === 'cloudy' ? 1 : 0
+    mat.uniforms.uSkyColor.value.copy(getSkyColor(store.timeOfDay))
+  })
+
+  return (
+    <mesh position={position}>
+      <planeGeometry args={[10, 5]} />
+      <primitive object={mat} attach="material" />
+    </mesh>
+  )
+}
 
 // Room dimensions
 const W = 12   // width  x
@@ -221,11 +323,8 @@ export default function Room() {
       <Window position={[-2.2, 2.0, -D / 2 + 0.12]} geoRefs={geoRefs} matRefs={matRefs} />
       <Window position={[2.2, 2.0, -D / 2 + 0.12]} geoRefs={geoRefs} matRefs={matRefs} />
 
-      {/* Sky plane visible through windows */}
-      <mesh position={[0, 2.8, -D / 2 - 0.5]} rotation={[0, 0, 0]}>
-        <planeGeometry ref={el => geoRefs.current.push(el)} args={[10, 5]} />
-        <meshBasicMaterial ref={el => matRefs.current.push(el)} color="#b0d4f0" />
-      </mesh>
+      {/* Weather window — ShaderMaterial driven by timeOfDay + weather store */}
+      <WeatherWindow position={[0, 2.2, -D / 2 - 0.5]} />
       {/* Green ground plane outside */}
       <mesh position={[0, 0.5, -D / 2 - 0.5]} rotation={[-Math.PI / 6, 0, 0]}>
         <planeGeometry ref={el => geoRefs.current.push(el)} args={[10, 3]} />

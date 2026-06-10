@@ -5,7 +5,32 @@ import { motion, AnimatePresence } from 'framer-motion'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 
-// performance.md: label texture in useMemo with stable deps — never recreated on re-render
+const LABEL_VERT = `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+`
+const LABEL_FRAG = `
+uniform sampler2D uTex;
+uniform float uWear;
+varying vec2 vUv;
+
+float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p) {
+  vec2 i=floor(p); vec2 f=fract(p);
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);
+}
+void main() {
+  vec4 col = texture2D(uTex, vUv);
+  float w = uWear * noise(vUv * 15.0 + 0.3);
+  float smudge = smoothstep(0.4, 0.6, w);
+  col.a *= (1.0 - smudge * 0.5);
+  col.rgb = mix(col.rgb, vec3(0.85), smudge * 0.3);
+  gl_FragColor = col;
+}
+`
+
+// performance.md: label texture in useMemo with stable deps
 function useLabelTexture(chemical) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas')
@@ -13,16 +38,13 @@ function useLabelTexture(chemical) {
     canvas.height = 300
     const ctx = canvas.getContext('2d')
 
-    // White background
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, 256, 300)
 
-    // Colored border
     ctx.strokeStyle = chemical.labelColor
     ctx.lineWidth = 12
     ctx.strokeRect(6, 6, 244, 288)
 
-    // Chemical name
     ctx.fillStyle = chemical.labelColor
     ctx.font = 'bold 34px sans-serif'
     ctx.textAlign = 'center'
@@ -34,12 +56,10 @@ function useLabelTexture(chemical) {
       ctx.fillText(chemical.name, 128, 78)
     }
 
-    // Formula
     ctx.fillStyle = '#333333'
     ctx.font = '30px monospace'
     ctx.fillText(chemical.formula, 128, 158)
 
-    // Hazard dots
     const dotY = 240
     const dotSpacing = 24
     const startX = 128 - ((chemical.hazardLevel - 1) * dotSpacing) / 2
@@ -53,10 +73,8 @@ function useLabelTexture(chemical) {
     const tex = new THREE.CanvasTexture(canvas)
     tex.anisotropy = 16
     return tex
-  // Stable dependency keys — only recreate when these specific values change
   }, [chemical.name, chemical.formula, chemical.labelColor, chemical.hazardLevel])
 
-  // Dispose texture on unmount (performance.md: texture.dispose() in cleanup)
   useEffect(() => {
     return () => { texture?.dispose() }
   }, [texture])
@@ -67,18 +85,40 @@ function useLabelTexture(chemical) {
 export default function ChemicalBottle({ chemical, position, onSelect }) {
   const [hovered, setHovered] = useState(false)
   const groupRef = useRef()                    // useRef, never useState for 3D refs (r3f.md)
+  const labelMatRef = useRef()
 
   const selectedChemical = useLabStore(state => state.selectedChemical)
   const heldBottleId     = useLabStore(state => state.heldBottleId)
   const setHoverTarget   = useLabStore(state => state.setHoverTarget)
   const setHoverLight    = useLabStore(state => state.setHoverLight)  // shared light (performance.md)
   const pendingSetup     = useLabStore(state => state.pendingExperimentSetup)
+  const useCount         = useLabStore(state => state.bottleUseCounts[chemical.id] || 0)
+
+  const wearLevel = useMemo(() => Math.min(useCount / 20, 1.0), [useCount])
 
   const isSelected = selectedChemical?.id === chemical.id
   const isHeld     = heldBottleId === chemical.id
   const isPending  = pendingSetup?.chemical1Id === chemical.id || pendingSetup?.chemical2Id === chemical.id
 
   const labelTexture = useLabelTexture(chemical)
+
+  // Wear shader material — update uWear uniform when wearLevel changes
+  const labelMat = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: LABEL_VERT,
+    fragmentShader: LABEL_FRAG,
+    uniforms: { uTex: { value: null }, uWear: { value: 0 } },
+    transparent: true,
+    depthWrite: false,
+  }), [])
+
+  useEffect(() => {
+    labelMat.uniforms.uTex.value = labelTexture
+    return () => labelMat.dispose()
+  }, [labelMat, labelTexture])
+
+  useEffect(() => {
+    labelMat.uniforms.uWear.value = wearLevel
+  }, [labelMat, wearLevel])
 
   // Hover float animation — lerp in useFrame, no Three.js allocations inside loop (r3f.md)
   useFrame((_, delta) => {
@@ -155,15 +195,10 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
           />
         </mesh>
 
-        {/* Label */}
+        {/* Label — wear shader */}
         <mesh position={[0, 0.12, 0.068]}>
           <planeGeometry args={[0.1, 0.12]} />
-          <meshStandardMaterial
-            map={labelTexture}
-            transparent
-            roughness={0.8}
-            depthWrite={false}
-          />
+          <primitive object={labelMat} attach="material" />
         </mesh>
 
         {/* High-hazard warning diamond */}
