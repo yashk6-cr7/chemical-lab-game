@@ -29,7 +29,9 @@ const _yawQ  = new THREE.Quaternion()
 
 export default function PlayerControls() {
   const keys    = useRef({})
-  const yaw     = useRef(0)       // character facing direction
+  const camYaw  = useRef(Math.PI)       // camera orbit angle
+  const camPitch = useRef(0)            // camera pitch angle
+  const charYaw = useRef(Math.PI)       // character facing direction
   const isMobile = useRef(isMobileDevice())
 
   const touch = useRef({
@@ -40,7 +42,7 @@ export default function PlayerControls() {
   })
 
   // Mouse drag state (desktop — no pointer lock needed for 3rd person!)
-  const mouse = useRef({ dragging: false, lastX: 0 })
+  const mouse = useRef({ dragging: false, lastX: 0, lastY: 0 })
 
   useEffect(() => {
     const onKeyDown = (e) => { keys.current[e.code] = true }
@@ -51,6 +53,7 @@ export default function PlayerControls() {
       if (e.button === 2) { // right click
         mouse.current.dragging = true
         mouse.current.lastX = e.clientX
+        mouse.current.lastY = e.clientY
         e.preventDefault()
       } else if (e.button === 0 && !isMobile.current) {
         if (document.pointerLockElement !== document.body && e.target.tagName === 'CANVAS') {
@@ -63,12 +66,18 @@ export default function PlayerControls() {
       if (isMobile.current) return
       
       if (document.pointerLockElement === document.body) {
-        yaw.current -= e.movementX * LOOK_SPEED
+        camYaw.current -= e.movementX * LOOK_SPEED
+        camPitch.current -= e.movementY * LOOK_SPEED
       } else if (mouse.current.dragging) {
         const dx = e.clientX - mouse.current.lastX
-        yaw.current -= dx * LOOK_SPEED
+        const dy = e.clientY - mouse.current.lastY
+        camYaw.current -= dx * LOOK_SPEED
+        camPitch.current -= dy * LOOK_SPEED
         mouse.current.lastX = e.clientX
+        mouse.current.lastY = e.clientY
       }
+      // Clamp pitch so camera doesn't flip over head
+      camPitch.current = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camPitch.current))
     }
     const onContextMenu = (e) => e.preventDefault()
 
@@ -100,7 +109,10 @@ export default function PlayerControls() {
         }
         if (t.identifier === touch.current.lookTouchId) {
           const dx = t.clientX - touch.current.lastLookPos.x
-          yaw.current -= dx * TOUCH_LOOK_SPEED
+          const dy = t.clientY - touch.current.lastLookPos.y
+          camYaw.current -= dx * TOUCH_LOOK_SPEED
+          camPitch.current -= dy * TOUCH_LOOK_SPEED
+          camPitch.current = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, camPitch.current))
           touch.current.lastLookPos = { x: t.clientX, y: t.clientY }
         }
       }
@@ -155,8 +167,10 @@ export default function PlayerControls() {
       fw = touch.current.moveDelta.y
     }
 
-    // Update store yaw every frame
-    useLabStore.getState().setCharacterYaw(yaw.current)
+    // Update store camera yaw/pitch every frame so camera can read it
+    const store = useLabStore.getState()
+    store.setCameraYaw(camYaw.current)
+    store.setCameraPitch(camPitch.current)
 
     if (fw === 0 && sd === 0) return
 
@@ -166,8 +180,8 @@ export default function PlayerControls() {
     const mag    = Math.min(len, 1.0)
     const invLen = 1 / len
 
-    // Build facing direction from yaw (flat XZ)
-    _fwd.set(Math.sin(yaw.current), 0, Math.cos(yaw.current))
+    // Build movement directions RELATIVE to camera's facing direction
+    _fwd.set(Math.sin(camYaw.current), 0, Math.cos(camYaw.current))
     _right.crossVectors(_fwd, _UP).normalize()
 
     // Combine forward + strafe
@@ -180,14 +194,16 @@ export default function PlayerControls() {
     const newX = Math.max(BOUNDS.minX, Math.min(BOUNDS.maxX, characterPos.x + _move.x * dt))
     const newZ = Math.max(BOUNDS.minZ, Math.min(BOUNDS.maxZ, characterPos.z + _move.z * dt))
 
-    // Auto-update yaw to face movement direction
+    // Auto-update character yaw to face movement direction visually
     if (Math.abs(fw) > 0.1 || Math.abs(sd) > 0.1) {
       const moveAngle = Math.atan2(_move.x, _move.z)
-      // Smooth yaw to face movement direction
-      let diff = moveAngle - yaw.current
+      
+      let diff = moveAngle - charYaw.current
       while (diff >  Math.PI) diff -= Math.PI * 2
       while (diff < -Math.PI) diff += Math.PI * 2
-      yaw.current += diff * Math.min(1, dt * 10)
+      
+      charYaw.current += diff * Math.min(1, dt * 10)
+      useLabStore.getState().setCharacterYaw(charYaw.current)
     }
 
     setCharacterPos({ x: newX, y: 0, z: newZ })

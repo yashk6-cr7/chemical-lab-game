@@ -23,28 +23,41 @@ export default function ThirdPersonCamera() {
   const orbitYaw = useRef(Math.PI) // start behind character
 
   useFrame((_, delta) => {
-    const { characterPos, characterYaw } = useLabStore.getState()
+    const { characterPos, cameraYaw, cameraPitch } = useLabStore.getState()
 
-    // Character world position
+    // Character base position
     _target.set(characterPos.x, 0, characterPos.z)
 
-    // Camera orbits at `orbitYaw` angle around character
-    // (by default matches character facing direction from behind)
-    const angle = characterYaw + Math.PI  // behind = +180°
+    // "Over the shoulder" offset so the character isn't perfectly centered (blocking clicks)
+    const rightAngle = cameraYaw - Math.PI / 2
+    const rightOffset = 0.5 // shift look target 0.5 units right of character
+    
+    _lookAt.set(
+      _target.x + Math.sin(rightAngle) * rightOffset,
+      LOOK_HEIGHT,
+      _target.z + Math.cos(rightAngle) * rightOffset
+    )
+
+    // Camera orbits the _lookAt position
+    const angle = cameraYaw + Math.PI  // behind = +180°
+    
+    // Apply pitch using spherical coordinates
+    const r = Math.cos(cameraPitch) * CAM_DISTANCE
+    const yOffset = Math.sin(cameraPitch) * CAM_DISTANCE
+
     _offset.set(
-      Math.sin(angle) * CAM_DISTANCE,
-      CAM_HEIGHT,
-      Math.cos(angle) * CAM_DISTANCE,
+      Math.sin(angle) * r,
+      CAM_HEIGHT - yOffset,
+      Math.cos(angle) * r,
     )
 
     // Target camera position
-    _camPos.copy(_target).add(_offset)
+    _camPos.copy(_lookAt).add(_offset)
 
     // Smooth follow
     camera.position.lerp(_camPos, Math.min(1, delta * CAM_LERP))
 
-    // Look at character's head
-    _lookAt.set(characterPos.x, LOOK_HEIGHT, characterPos.z)
+    // Look at shoulder target
     camera.lookAt(_lookAt)
   })
 

@@ -115,9 +115,13 @@ const useLabStore = create((set, get) => ({
 
   // --- Third-person character state ---
   characterPos: { x: 0, y: 0, z: 3.0 },
-  characterYaw: 0,
+  characterYaw: Math.PI,
+  cameraYaw: Math.PI,
+  cameraPitch: 0,
   setCharacterPos: (pos) => set({ characterPos: pos }),
   setCharacterYaw: (yaw) => set({ characterYaw: yaw }),
+  setCameraYaw: (yaw) => set({ cameraYaw: yaw }),
+  setCameraPitch: (pitch) => set({ cameraPitch: pitch }),
 
   // --- Safety & Environment ---
   safetyGear: {
