@@ -46,9 +46,6 @@ export default function ThirdPersonCamera() {
     // Look at character's head
     _lookAt.set(characterPos.x, LOOK_HEIGHT, characterPos.z)
     camera.lookAt(_lookAt)
-
-    // Ensure no roll ever (lookAt can introduce it)
-    camera.rotation.z = 0
   })
 
   return null

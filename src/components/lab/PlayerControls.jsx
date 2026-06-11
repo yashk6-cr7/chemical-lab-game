@@ -46,20 +46,29 @@ export default function PlayerControls() {
     const onKeyDown = (e) => { keys.current[e.code] = true }
     const onKeyUp   = (e) => { keys.current[e.code] = false }
 
-    // Desktop: right mouse button drag to rotate
+    // Desktop: right mouse button drag to rotate, or pointer lock!
     const onMouseDown = (e) => {
       if (e.button === 2) { // right click
         mouse.current.dragging = true
         mouse.current.lastX = e.clientX
         e.preventDefault()
+      } else if (e.button === 0 && !isMobile.current) {
+        if (document.pointerLockElement !== document.body && e.target.tagName === 'CANVAS') {
+          document.body.requestPointerLock()
+        }
       }
     }
     const onMouseUp   = (e) => { if (e.button === 2) mouse.current.dragging = false }
     const onMouseMove = (e) => {
-      if (!mouse.current.dragging || isMobile.current) return
-      const dx = e.clientX - mouse.current.lastX
-      yaw.current -= dx * LOOK_SPEED
-      mouse.current.lastX = e.clientX
+      if (isMobile.current) return
+      
+      if (document.pointerLockElement === document.body) {
+        yaw.current -= e.movementX * LOOK_SPEED
+      } else if (mouse.current.dragging) {
+        const dx = e.clientX - mouse.current.lastX
+        yaw.current -= dx * LOOK_SPEED
+        mouse.current.lastX = e.clientX
+      }
     }
     const onContextMenu = (e) => e.preventDefault()
 

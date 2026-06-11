@@ -24,3 +24,10 @@ export function subscribePointerLock(fn) {
   _listeners.add(fn)
   return () => _listeners.delete(fn)
 }
+
+// Automatically sync state when browser locks/unlocks pointer
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerlockchange', () => {
+    setPointerLocked(document.pointerLockElement !== null)
+  })
+}
