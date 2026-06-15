@@ -369,6 +369,9 @@ export default function Lab() {
 
             {/* ── Third-Person Player System ── */}
             <Player />
+
+            {/* ── Third-Person Camera System ── */}
+            <ThirdPersonCamera />
           </Physics>
 
           {/* Held bottle follows camera */}
@@ -386,9 +389,6 @@ export default function Lab() {
 
           {/* Camera dizziness — desktop only (CSS transform sway) */}
           {!IS_MOBILE && <DizzinessEffect />}
-
-          {/* ── Third-Person Camera System ── */}
-          <ThirdPersonCamera />
           
           {/* Physical Safety Gear */}
           <SafetyGearStation />
