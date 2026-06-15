@@ -340,14 +340,14 @@ export default function Lab() {
             factor={0.5}
           />
           <Lighting />
-          <Room />
-
           {/* Physics — lower timestep on mobile saves ~30% CPU */}
           <Physics
             gravity={[0, -9.81, 0]}
             timeStep={IS_MOBILE ? 1/30 : 1/60}
             interpolate={!IS_MOBILE}
           >
+            {/* Room must be inside Physics — it uses RigidBody + CuboidCollider for wall/floor colliders */}
+            <Room />
             <Bench />
             <FumeHood />
             <SafetyCorner />

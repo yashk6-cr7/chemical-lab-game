@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,7 +17,7 @@ function GearItem({ type, position, children, label, icon }) {
   const hoverRef  = useRef(false)
   const glowRef   = useRef(0)
   const meshRef   = useRef()
-  const nearRef   = useRef(false)
+  const [isNear, setIsNear] = useState(false)
   const safetyGear = useLabStore(s => s.safetyGear)
   const equipGear  = useLabStore(s => s.equipGear)
 
@@ -31,15 +31,14 @@ function GearItem({ type, position, children, label, icon }) {
     _itemPos.set(position[0], 0, position[2])
 
     const dist = _charPos.distanceTo(_itemPos)
-    const isNear = dist < PICKUP_RANGE
+    const near = dist < PICKUP_RANGE
 
-    if (isNear !== nearRef.current) {
-      nearRef.current = isNear
-      meshRef.current.userData.nearChanged = true
+    if (near !== isNear) {
+      setIsNear(near)
     }
 
     // Glow pulse when near
-    const targetGlow = isNear ? 1.0 : 0.0
+    const targetGlow = near ? 1.0 : 0.0
     glowRef.current += (targetGlow - glowRef.current) * Math.min(1, delta * 6)
 
     // Emissive glow on hover/near
@@ -48,21 +47,11 @@ function GearItem({ type, position, children, label, icon }) {
     }
   })
 
-  const handleEquip = () => {
+  // Both Mobile and Desktop: click to equip
+  const handleEquip = useCallback((e) => {
+    e.stopPropagation()
     if (!alreadyWorn) equipGear(type)
-  }
-
-  // E key support on desktop
-  useMemo(() => {
-    if (IS_MOBILE) return
-    const onKeyDown = (e) => {
-      if (e.code === 'KeyE' && nearRef.current && !alreadyWorn) {
-        handleEquip()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [alreadyWorn])
+  }, [alreadyWorn, equipGear, type])
 
   if (alreadyWorn) return null  // item disappears when worn
 
@@ -70,7 +59,7 @@ function GearItem({ type, position, children, label, icon }) {
     <group position={position}>
       <group
         ref={meshRef}
-        onClick={IS_MOBILE ? handleEquip : undefined}
+        onClick={handleEquip}
         onPointerOver={() => { hoverRef.current = true }}
         onPointerOut={() =>  { hoverRef.current = false }}
       >
@@ -80,7 +69,7 @@ function GearItem({ type, position, children, label, icon }) {
       {/* Proximity prompt */}
       <Html center distanceFactor={8} zIndexRange={[100, 0]} style={{ pointerEvents: 'none', position: 'absolute', top: -50 }}>
         <AnimatePresence>
-          {nearRef.current && (
+          {isNear && (
             <motion.div
               initial={{ opacity: 0, y: 8, scale: 0.85 }}
               animate={{ opacity: 1, y: 0,  scale: 1    }}
@@ -102,7 +91,7 @@ function GearItem({ type, position, children, label, icon }) {
               <div>
                 <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{label}</div>
                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
-                  {IS_MOBILE ? '👆 Tap to wear' : '[ E ] to wear'}
+                  {IS_MOBILE ? '👆 Tap to wear' : '🖱️ Left-Click to wear'}
                 </div>
               </div>
             </motion.div>
@@ -135,10 +124,37 @@ function LabCoatHook() {
 
       <GearItem type="coat" position={[0.12, -0.2, 0]} label="Lab Coat" icon="🥼">
         {/* Coat body hanging */}
-        <mesh castShadow>
-          <boxGeometry args={[0.08, 0.6, 0.35]} />
-          <primitive object={coatMat} attach="material" />
-        </mesh>
+        <group position={[0, -0.15, 0.05]}>
+          {/* Main coat body */}
+          <mesh castShadow>
+            <boxGeometry args={[0.38, 0.55, 0.04]} />
+            <primitive object={coatMat} attach="material" />
+          </mesh>
+          {/* Left sleeve */}
+          <mesh position={[-0.26, -0.05, 0]} castShadow>
+            <boxGeometry args={[0.14, 0.38, 0.04]} />
+            <primitive object={coatMat} attach="material" />
+          </mesh>
+          {/* Right sleeve */}
+          <mesh position={[0.26, -0.05, 0]} castShadow>
+            <boxGeometry args={[0.14, 0.38, 0.04]} />
+            <primitive object={coatMat} attach="material" />
+          </mesh>
+          {/* Lapels */}
+          <mesh position={[-0.08, 0.18, 0.025]}>
+            <boxGeometry args={[0.06, 0.18, 0.01]} />
+            <meshStandardMaterial color="#E0E0E0" roughness={0.6} />
+          </mesh>
+          <mesh position={[0.08, 0.18, 0.025]}>
+            <boxGeometry args={[0.06, 0.18, 0.01]} />
+            <meshStandardMaterial color="#E0E0E0" roughness={0.6} />
+          </mesh>
+          {/* Pocket */}
+          <mesh position={[-0.12, -0.08, 0.022]}>
+            <boxGeometry args={[0.1, 0.08, 0.005]} />
+            <meshStandardMaterial color="#E8E8E8" roughness={0.6} />
+          </mesh>
+        </group>
       </GearItem>
     </group>
   )
@@ -219,7 +235,6 @@ function GloveBox() {
       <GearItem type="gloves" position={[0.2, 0, 0]} label="Safety Gloves" icon="🧤">
         <mesh visible={false}>
           <boxGeometry args={[0.1, 0.1, 0.1]} />
-          <meshBasicMaterial />
         </mesh>
       </GearItem>
     </group>

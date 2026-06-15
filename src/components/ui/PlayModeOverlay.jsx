@@ -33,95 +33,32 @@ function MobileHint() {
   )
 }
 
-// ── Desktop: Click-to-play overlay + ESC pill ─────────────────────────────────
-function DesktopOverlay() {
-  const [locked, setLocked] = useState(false)
-
-  useEffect(() => {
-    return subscribePointerLock(setLocked)
-  }, [])
-
+function DesktopHint() {
   return (
-    <>
-      <AnimatePresence>
-        {!locked && (
-          <motion.div
-            key="click-to-play"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.15) 70%, transparent 100%)' }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="flex flex-col items-center gap-5 select-none"
-            >
-              {/* Crosshair icon */}
-              <div className="w-20 h-20 rounded-full border-2 border-white/40 flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="1.8">
-                  <circle cx="12" cy="12" r="1.5" fill="rgba(255,255,255,0.85)" stroke="none"/>
-                  <line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/>
-                  <line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/>
-                </svg>
-              </div>
-
-              <div className="text-center">
-                <p className="text-white text-2xl font-bold tracking-tight mb-1">Click to Play</p>
-                <p className="text-white/45 text-sm">Your pointer will be captured by the game</p>
-              </div>
-
-              {/* Controls grid */}
-              <div className="grid grid-cols-2 gap-x-10 gap-y-2.5 mt-1">
-                {[
-                  ['W A S D', 'Move'],
-                  ['Mouse', 'Look around'],
-                  ['E', 'Pick up item'],
-                  ['Q / Right-click', 'Put down'],
-                  ['F', 'Pour chemical'],
-                  ['ESC', 'Pause / cursor'],
-                ].map(([key, action]) => (
-                  <div key={key} className="flex items-center gap-3">
-                    <kbd className="px-2.5 py-0.5 bg-white/12 text-white text-xs font-bold rounded-md border border-white/20 min-w-[52px] text-center whitespace-nowrap">
-                      {key}
-                    </kbd>
-                    <span className="text-white/55 text-xs">{action}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ESC hint when locked */}
-      <AnimatePresence>
-        {locked && (
-          <motion.div
-            key="esc-hint"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-          >
-            <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1">
-              <kbd className="text-white/50 text-[10px] font-bold bg-white/10 rounded px-1.5 py-0.5 border border-white/20">ESC</kbd>
-              <span className="text-white/35 text-[10px]">to pause</span>
+    <div className="fixed bottom-6 left-6 z-30 pointer-events-none">
+      <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+          {[
+            ['W A S D', 'Move'],
+            ['Right-Click Drag', 'Look around'],
+            ['Left-Click', 'Interact / Pick up'],
+            ['Q', 'Put down'],
+            ['F', 'Pour chemical'],
+          ].map(([key, action]) => (
+            <div key={key} className="flex items-center gap-3">
+              <kbd className="px-2 py-1 bg-white/10 text-white text-[10px] font-bold rounded min-w-[36px] text-center border border-white/20">
+                {key}
+              </kbd>
+              <span className="text-white/70 text-xs font-medium">{action}</span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
 export default function PlayModeOverlay() {
   if (IS_MOBILE) return <MobileHint />
-  return <DesktopOverlay />
+  return <DesktopHint />
 }

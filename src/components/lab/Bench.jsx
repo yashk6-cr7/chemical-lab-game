@@ -260,7 +260,10 @@ export default function Bench() {
           6w × 1d × 0.9h, centred at z=0
       ==================================================== */}
       <RigidBody type="fixed" colliders={false} position={[0, 0, 0]}>
-        <CuboidCollider args={[3, 0.45, 0.5]} position={[0, 0.45, 0]} />
+        {/* Main bench top surface */}
+        <CuboidCollider args={[3.0, 0.05, 0.5]} position={[0, 0.93, 0]} />
+        {/* Bench body */}
+        <CuboidCollider args={[3.0, 0.45, 0.5]} position={[0, 0.45, 0]} />
         {/* Bench top surface */}
         <mesh position={[0, 0.9, 0]} castShadow receiveShadow onClick={handleBenchClick}>
           <boxGeometry ref={el => geoRefs.current.push(el)} args={[6, 0.06, 1]} />
@@ -329,6 +332,7 @@ export default function Bench() {
           4w × 0.7d × 0.9h
       ==================================================== */}
       <RigidBody type="fixed" colliders={false} position={[-5.15, 0, -2]}>
+        <CuboidCollider args={[2, 0.05, 0.35]} position={[0, 0.93, 0]} />
         <CuboidCollider args={[2, 0.45, 0.35]} position={[0, 0.45, 0]} />
         {/* Secondary bench top */}
         <mesh position={[0, 0.9, 0]} castShadow receiveShadow>

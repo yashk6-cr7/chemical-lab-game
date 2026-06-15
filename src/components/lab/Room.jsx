@@ -73,8 +73,6 @@ void main() {
 `
 
 function WeatherWindow({ position }) {
-  const matRef = useRef()
-
   const mat = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: WEATHER_VERT,
     fragmentShader: WEATHER_FRAG,

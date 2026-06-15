@@ -148,26 +148,10 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
     setHoverLight({ active: false })
   }, [setHoverTarget, setHoverLight])
 
-  // Mobile: tap to pick up
-  // Desktop: E key to pick up (only when pointer is locked)
+  // Both Mobile and Desktop: click/tap to pick up
   const handleClick = useCallback((e) => {
     e.stopPropagation()
-    if (isMobile.current) {
-      onSelect && onSelect(chemical)
-    }
-    // Desktop click just enters pointer lock — interaction is via E key
-  }, [onSelect, chemical])
-
-  // Desktop E key
-  useEffect(() => {
-    if (isMobile.current) return
-    const onKeyDown = (e) => {
-      if (e.code === 'KeyE' && hoveredRef.current && isPointerLocked()) {
-        onSelect && onSelect(chemical)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    onSelect && onSelect(chemical)
   }, [onSelect, chemical])
 
   return (
@@ -323,10 +307,8 @@ export default function ChemicalBottle({ chemical, position, onSelect }) {
                     </>
                   ) : (
                     <>
-                      <kbd className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded border border-white/30">E</kbd>
-                      <span className="text-white/60 text-xs">Pick up</span>
-                      <kbd className="ml-auto px-2 py-0.5 bg-white/10 text-white/50 text-xs font-bold rounded border border-white/20">Q</kbd>
-                      <span className="text-white/40 text-xs">Put down</span>
+                      <span className="text-xl leading-none">🖱️</span>
+                      <span className="text-white/60 text-xs font-semibold">Left-Click to pick up</span>
                     </>
                   )}
                 </div>

@@ -75,24 +75,17 @@ export default function ChemicalPickup() {
 
   useDisposable(labelTexture)
 
-  // Key/Q or right-click to put down
+  // Key Q to put down
   const handleKeyDown = useCallback((e) => {
     if (e.code === 'KeyQ' && heldChemical) putDownBottle()
   }, [heldChemical, putDownBottle])
 
-  const handleContextMenu = useCallback((e) => {
-    e.preventDefault()
-    if (heldChemical) putDownBottle()
-  }, [heldChemical, putDownBottle])
-
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('contextmenu', handleContextMenu)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('contextmenu', handleContextMenu)
     }
-  }, [handleKeyDown, handleContextMenu])
+  }, [handleKeyDown])
 
   useFrame((_, delta) => {
     if (!groupRef.current || !activeChemical) return

@@ -17,9 +17,9 @@ const _move = new THREE.Vector3()
 const _UP = new THREE.Vector3(0, 1, 0)
 
 const BENCH_INTERACTION_POSITIONS = [
-  new THREE.Vector3(-1.2, 0, 0),   // left side of bench
-  new THREE.Vector3(0, 0, 0),      // center of bench
-  new THREE.Vector3(1.2, 0, 0),    // right side of bench
+  new THREE.Vector3(0, 0, 1.4),    // Front of main bench
+  new THREE.Vector3(0, 0, -1.4),   // Back of main bench
+  new THREE.Vector3(-4.0, 0, -2.0) // Secondary bench
 ]
 const INTERACTION_RADIUS = 1.4
 
@@ -59,25 +59,17 @@ export default function Player() {
     const onKeyUp   = (e) => { keys.current[e.code] = false }
 
     const onMouseDown = (e) => {
-      if (e.button === 2) {
+      if (e.button === 2 || e.target.tagName === 'CANVAS') {
         mouse.current.dragging = true
         mouse.current.lastX = e.clientX
         mouse.current.lastY = e.clientY
-        e.preventDefault()
-      } else if (e.button === 0 && !isMobile.current) {
-        if (document.pointerLockElement !== document.body && e.target.tagName === 'CANVAS') {
-          document.body.requestPointerLock()
-        }
       }
     }
-    const onMouseUp   = (e) => { if (e.button === 2) mouse.current.dragging = false }
+    const onMouseUp   = (e) => { mouse.current.dragging = false }
     const onMouseMove = (e) => {
       if (isMobile.current) return
       
-      if (document.pointerLockElement === document.body) {
-        camYaw.current -= e.movementX * LOOK_SPEED
-        camPitch.current -= e.movementY * LOOK_SPEED
-      } else if (mouse.current.dragging) {
+      if (mouse.current.dragging) {
         const dx = e.clientX - mouse.current.lastX
         const dy = e.clientY - mouse.current.lastY
         camYaw.current -= dx * LOOK_SPEED
@@ -281,44 +273,43 @@ export default function Player() {
       <group ref={characterGroupRef}>
         <group ref={bodyGroupRef}>
           {/* Head & Neck */}
-          <group position={[0, 1.55, 0]}>
+          <group position={[0, 1.49, 0]}>
             {/* Neck */}
-            <mesh position={[0, -0.08, 0]}>
-              <cylinderGeometry args={[0.05, 0.06, 0.1]} />
+            <mesh position={[0, 0, 0]}>
+              <cylinderGeometry args={[0.06, 0.07, 0.12]} />
               <primitive object={skinMat} attach="material" />
             </mesh>
-            {/* Head (Ellipsoid) */}
-            <mesh position={[0, 0.05, 0]}>
-              <sphereGeometry args={[0.11, 32, 32]} />
+            {/* Head */}
+            <mesh position={[0, 0.13, 0]}>
+              <sphereGeometry args={[0.13, 16, 16]} />
               <primitive object={skinMat} attach="material" />
             </mesh>
             {/* Hair */}
-            <mesh position={[0, 0.07, 0]}>
-              <sphereGeometry args={[0.115, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+            <mesh position={[0, 0.13, 0]}>
+              <sphereGeometry args={[0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
               <primitive object={hairMat} attach="material" />
             </mesh>
-            
             {/* Goggles */}
             {safetyGear.goggles && (
-              <group position={[0, 0.05, 0.1]}>
-                <mesh position={[-0.04, 0, 0]}>
-                  <torusGeometry args={[0.035, 0.01, 8, 16]} />
+              <group position={[0, 0.15, 0.12]}>
+                <mesh position={[-0.05, 0, 0]}>
+                  <torusGeometry args={[0.045, 0.015, 8, 16]} />
                   <primitive object={goggleMat} attach="material" />
                 </mesh>
-                <mesh position={[0.04, 0, 0]}>
-                  <torusGeometry args={[0.035, 0.01, 8, 16]} />
+                <mesh position={[0.05, 0, 0]}>
+                  <torusGeometry args={[0.045, 0.015, 8, 16]} />
                   <primitive object={goggleMat} attach="material" />
                 </mesh>
                 <mesh position={[0, 0, 0]}>
-                  <boxGeometry args={[0.04, 0.01, 0.01]} />
+                  <boxGeometry args={[0.06, 0.015, 0.015]} />
                   <primitive object={goggleMat} attach="material" />
                 </mesh>
-                <mesh position={[-0.04, 0, 0]}>
-                  <circleGeometry args={[0.03, 16]} />
+                <mesh position={[-0.05, 0, 0]}>
+                  <circleGeometry args={[0.038, 16]} />
                   <primitive object={lensMat} attach="material" />
                 </mesh>
-                <mesh position={[0.04, 0, 0]}>
-                  <circleGeometry args={[0.03, 16]} />
+                <mesh position={[0.05, 0, 0]}>
+                  <circleGeometry args={[0.038, 16]} />
                   <primitive object={lensMat} attach="material" />
                 </mesh>
               </group>
@@ -326,95 +317,89 @@ export default function Player() {
           </group>
 
           {/* Torso */}
-          <group position={[0, 1.15, 0]}>
+          <group position={[0, 1.14, 0]}>
             <mesh>
-              {/* Slender torso */}
-              <boxGeometry args={[0.35, 0.6, 0.2]} />
+              <boxGeometry args={[0.42, 0.52, 0.22]} />
               <primitive object={shirtMat} attach="material" />
             </mesh>
-            
-            {/* Lab Coat Overlay */}
+            {/* Lab Coat Overlay on Torso */}
             {safetyGear.coat && (
-              <mesh position={[0, -0.1, 0]}>
-                {/* Coat extends lower than torso */}
-                <boxGeometry args={[0.38, 0.8, 0.23]} />
+              <mesh position={[0, 0, 0.01]}>
+                <boxGeometry args={[0.46, 0.54, 0.24]} />
                 <primitive object={coatMat} attach="material" />
               </mesh>
             )}
           </group>
 
-          {/* Hips / Pelvis */}
-          <mesh position={[0, 0.8, 0]}>
-            <boxGeometry args={[0.34, 0.15, 0.19]} />
+          {/* Hips */}
+          <mesh position={[0, 0.84, 0]}>
+            <boxGeometry args={[0.38, 0.18, 0.20]} />
             <primitive object={trousersMat} attach="material" />
           </mesh>
 
-          {/* Left Arm (Pivot at shoulder: y=1.35) */}
-          <group ref={upperArmLRef} position={[-0.22, 1.35, 0]} rotation={[0, 0, 0.1]}>
+          {/* Left Arm (Pivot at shoulder y=1.37) */}
+          <group ref={upperArmLRef} position={[-0.24, 1.37, 0]} rotation={[0, 0, 0.25]}>
             {/* Upper Arm */}
             <mesh position={[0, -0.15, 0]}>
-              <cylinderGeometry args={[0.045, 0.04, 0.3]} />
+              <cylinderGeometry args={[0.07, 0.06, 0.30]} />
               <primitive object={safetyGear.coat ? coatMat : shirtMat} attach="material" />
             </mesh>
-            {/* Forearm */}
-            <mesh position={[0.02, -0.45, 0]} rotation={[0, 0, -0.05]}>
-              <cylinderGeometry args={[0.04, 0.035, 0.3]} />
+            {/* Lower Arm */}
+            <mesh position={[0, -0.43, 0]} rotation={[0, 0, -0.10]}>
+              <cylinderGeometry args={[0.06, 0.05, 0.28]} />
               <primitive object={skinMat} attach="material" />
             </mesh>
             {/* Hand */}
-            <mesh position={[0.03, -0.62, 0]}>
-              <sphereGeometry args={[0.045, 16, 16]} />
+            <mesh position={[0, -0.59, 0]} rotation={[0, 0, -0.10]}>
+              <sphereGeometry args={[0.07, 8, 8]} />
               <primitive object={safetyGear.gloves ? gloveMat : skinMat} attach="material" />
             </mesh>
           </group>
 
-          {/* Right Arm (Pivot at shoulder: y=1.35) */}
-          <group ref={upperArmRRef} position={[0.22, 1.35, 0]} rotation={[0, 0, -0.1]}>
+          {/* Right Arm */}
+          <group ref={upperArmRRef} position={[0.24, 1.37, 0]} rotation={[0, 0, -0.25]}>
             <mesh position={[0, -0.15, 0]}>
-              <cylinderGeometry args={[0.045, 0.04, 0.3]} />
+              <cylinderGeometry args={[0.07, 0.06, 0.30]} />
               <primitive object={safetyGear.coat ? coatMat : shirtMat} attach="material" />
             </mesh>
-            <mesh position={[-0.02, -0.45, 0]} rotation={[0, 0, 0.05]}>
-              <cylinderGeometry args={[0.04, 0.035, 0.3]} />
+            <mesh position={[0, -0.43, 0]} rotation={[0, 0, 0.10]}>
+              <cylinderGeometry args={[0.06, 0.05, 0.28]} />
               <primitive object={skinMat} attach="material" />
             </mesh>
-            <mesh position={[-0.03, -0.62, 0]}>
-              <sphereGeometry args={[0.045, 16, 16]} />
+            <mesh position={[0, -0.59, 0]} rotation={[0, 0, 0.10]}>
+              <sphereGeometry args={[0.07, 8, 8]} />
               <primitive object={safetyGear.gloves ? gloveMat : skinMat} attach="material" />
             </mesh>
           </group>
 
-          {/* Left Leg (Pivot at hip: y=0.75) */}
-          <group ref={upperLegLRef} position={[-0.1, 0.75, 0]}>
-            {/* Thigh */}
-            <mesh position={[0, -0.22, 0]}>
-              <cylinderGeometry args={[0.07, 0.06, 0.45]} />
+          {/* Left Leg (Pivot at hip y=0.75) */}
+          <group ref={upperLegLRef} position={[-0.12, 0.75, 0]}>
+            <mesh position={[0, -0.19, 0]}>
+              <cylinderGeometry args={[0.09, 0.08, 0.38]} />
               <primitive object={trousersMat} attach="material" />
             </mesh>
-            {/* Calf */}
-            <mesh position={[0, -0.65, 0]}>
-              <cylinderGeometry args={[0.06, 0.05, 0.45]} />
+            <mesh position={[0, -0.57, 0]}>
+              <cylinderGeometry args={[0.08, 0.07, 0.36]} />
               <primitive object={trousersMat} attach="material" />
             </mesh>
-            {/* Shoe */}
-            <mesh position={[0, -0.88, 0.04]}>
-              <boxGeometry args={[0.09, 0.06, 0.18]} />
+            <mesh position={[0, -0.73, 0.04]}>
+              <boxGeometry args={[0.12, 0.08, 0.22]} />
               <primitive object={shoeMat} attach="material" />
             </mesh>
           </group>
 
-          {/* Right Leg (Pivot at hip: y=0.75) */}
-          <group ref={upperLegRRef} position={[0.1, 0.75, 0]}>
-            <mesh position={[0, -0.22, 0]}>
-              <cylinderGeometry args={[0.07, 0.06, 0.45]} />
+          {/* Right Leg */}
+          <group ref={upperLegRRef} position={[0.12, 0.75, 0]}>
+            <mesh position={[0, -0.19, 0]}>
+              <cylinderGeometry args={[0.09, 0.08, 0.38]} />
               <primitive object={trousersMat} attach="material" />
             </mesh>
-            <mesh position={[0, -0.65, 0]}>
-              <cylinderGeometry args={[0.06, 0.05, 0.45]} />
+            <mesh position={[0, -0.57, 0]}>
+              <cylinderGeometry args={[0.08, 0.07, 0.36]} />
               <primitive object={trousersMat} attach="material" />
             </mesh>
-            <mesh position={[0, -0.88, 0.04]}>
-              <boxGeometry args={[0.09, 0.06, 0.18]} />
+            <mesh position={[0, -0.73, 0.04]}>
+              <boxGeometry args={[0.12, 0.08, 0.22]} />
               <primitive object={shoeMat} attach="material" />
             </mesh>
           </group>
