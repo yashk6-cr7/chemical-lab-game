@@ -241,8 +241,7 @@ function EmergencyShower({ position }) {
 export default function SafetyCorner() {
   return (
     <group>
-      {/* Eyewash station — left wall, at eye height */}
-      <EyewashStation position={[-5.72, 1.55, 0.5]} />
+      {/* Eyewash station removed as per request */}
 
       {/* Emergency shower — corner near left wall */}
       <EmergencyShower position={[-5.5, 0, 1.2]} />

@@ -38,6 +38,7 @@ export default function Beaker({ beaker }) {
   const handleClick = useCallback((e) => {
     e.stopPropagation()
     const store = useLabStore.getState()
+    if (!store.nearBench) return
     
     if (store.isPipetteActive) {
       if (!store.pipetteContents) {

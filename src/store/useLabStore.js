@@ -118,10 +118,12 @@ const useLabStore = create((set, get) => ({
   characterYaw: Math.PI,
   cameraYaw: Math.PI,
   cameraPitch: 0,
+  nearBench: false,
   setCharacterPos: (pos) => set({ characterPos: pos }),
   setCharacterYaw: (yaw) => set({ characterYaw: yaw }),
   setCameraYaw: (yaw) => set({ cameraYaw: yaw }),
   setCameraPitch: (pitch) => set({ cameraPitch: pitch }),
+  setNearBench: (near) => set({ nearBench: near }),
 
   // --- Safety & Environment ---
   safetyGear: {

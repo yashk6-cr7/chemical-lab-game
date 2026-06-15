@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import { useRefDisposal } from '../../utils/disposal'
 import HotPlate from '../equipment/HotPlate'
+import { RigidBody, CuboidCollider } from '@react-three/rapier'
 
 // ─── Bench Damage: canvas texture compositing ───────────────────────────────
 function useDamageTexture() {
@@ -149,6 +150,7 @@ function Sink({ position }) {
 
   const handleClick = (e) => {
     e.stopPropagation()
+    if (!useLabStore.getState().nearBench) return
     if (isHoldingBeaker && heldBeakerId) {
       rinseBeaker(heldBeakerId)
     }
@@ -243,6 +245,7 @@ export default function Bench() {
 
   const handleBenchClick = (e) => {
     e.stopPropagation()
+    if (!useLabStore.getState().nearBench) return
     if (isHoldingBeaker && heldBeakerId) {
       // Clamp Z so it doesn't hang off the edge
       const z = Math.max(-0.35, Math.min(0.35, e.point.z))
@@ -256,7 +259,8 @@ export default function Bench() {
           MAIN LAB BENCH — center of room
           6w × 1d × 0.9h, centred at z=0
       ==================================================== */}
-      <group position={[0, 0, 0]}>
+      <RigidBody type="fixed" colliders={false} position={[0, 0, 0]}>
+        <CuboidCollider args={[3, 0.45, 0.5]} position={[0, 0.45, 0]} />
         {/* Bench top surface */}
         <mesh position={[0, 0.9, 0]} castShadow receiveShadow onClick={handleBenchClick}>
           <boxGeometry ref={el => geoRefs.current.push(el)} args={[6, 0.06, 1]} />
@@ -318,13 +322,14 @@ export default function Bench() {
         {/* Damage layers — canvas stains + crack instances */}
         <BenchDamageLayer textureRef={textureRef} />
         <BenchCracks cracks={benchDamage.cracks} />
-      </group>
+      </RigidBody>
 
       {/* ====================================================
           SECONDARY BENCH — left wall, along wall
           4w × 0.7d × 0.9h
       ==================================================== */}
-      <group position={[-5.15, 0, -2]}>
+      <RigidBody type="fixed" colliders={false} position={[-5.15, 0, -2]}>
+        <CuboidCollider args={[2, 0.45, 0.35]} position={[0, 0.45, 0]} />
         {/* Secondary bench top */}
         <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
           <boxGeometry ref={el => geoRefs.current.push(el)} args={[4, 0.06, 0.7]} />
@@ -348,7 +353,7 @@ export default function Bench() {
         {[-2, -0.67, 0.67, 2].map((x, i) => (
           <CabinetHandle key={i} position={[x, 0.55, 0.365]} />
         ))}
-      </group>
+      </RigidBody>
     </group>
   )
 }

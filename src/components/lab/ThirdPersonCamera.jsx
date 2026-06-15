@@ -1,5 +1,7 @@
 import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useRapier } from '@react-three/rapier'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 
@@ -16,6 +18,7 @@ const LOOK_HEIGHT   = 1.3    // character head height to look at
 
 export default function ThirdPersonCamera() {
   const { camera } = useThree()
+  const { rapier, world } = useRapier()
   const cameraYaw = useRef(0)  // independent camera orbit yaw
 
   // Store the camera orbit angle separately from character yaw
@@ -51,8 +54,22 @@ export default function ThirdPersonCamera() {
       Math.cos(angle) * r,
     )
 
-    // Target camera position
+    // Target camera position without collision
     _camPos.copy(_lookAt).add(_offset)
+
+    // Raycast to prevent clipping through walls
+    const rayDir = _camPos.clone().sub(_lookAt).normalize()
+    const maxDist = _lookAt.distanceTo(_camPos)
+    
+    const ray = new rapier.Ray(_lookAt, rayDir)
+    // Cast ray against anything, returning timeOfImpact
+    const hit = world.castRay(ray, maxDist, true)
+
+    if (hit && hit.collider) {
+      // Shorten the camera distance, leave a tiny margin
+      const safeDist = Math.max(0.2, hit.timeOfImpact - 0.2)
+      _camPos.copy(_lookAt).add(rayDir.multiplyScalar(safeDist))
+    }
 
     // Smooth follow
     camera.position.lerp(_camPos, Math.min(1, delta * CAM_LERP))
@@ -61,5 +78,13 @@ export default function ThirdPersonCamera() {
     camera.lookAt(_lookAt)
   })
 
-  return null
+  return (
+    <Html center zIndexRange={[100, 100]} style={{ pointerEvents: 'none' }}>
+      <div style={{
+        width: 4, height: 4, background: 'rgba(255,255,255,0.8)',
+        borderRadius: '50%', boxShadow: '0 0 2px rgba(0,0,0,0.8)',
+        transform: 'translate(-50%, -50%)'
+      }} />
+    </Html>
+  )
 }

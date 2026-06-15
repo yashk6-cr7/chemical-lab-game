@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useRefDisposal } from '../../utils/disposal'
 import useLabStore from '../../store/useLabStore'
+import { RigidBody, CuboidCollider } from '@react-three/rapier'
 
 // Sky color stops — same approach as Lighting.jsx, reuse lerp
 const skyStops = [
@@ -247,7 +248,14 @@ export default function Room() {
   const matRefs = useRef([])
   useRefDisposal(geoRefs, matRefs)
   return (
-    <group>
+    <RigidBody type="fixed" colliders={false}>
+      <CuboidCollider args={[W / 2, 0.1, D / 2]} position={[0, -0.1, 0]} />
+      <CuboidCollider args={[W / 2, 0.1, D / 2]} position={[0, H + 0.1, 0]} />
+      <CuboidCollider args={[W / 2, H / 2, 0.1]} position={[0, H / 2, -D / 2 - 0.1]} />
+      <CuboidCollider args={[W / 2, H / 2, 0.1]} position={[0, H / 2, D / 2 + 0.1]} />
+      <CuboidCollider args={[0.1, H / 2, D / 2]} position={[-W / 2 - 0.1, H / 2, 0]} />
+      <CuboidCollider args={[0.1, H / 2, D / 2]} position={[W / 2 + 0.1, H / 2, 0]} />
+
       {/* ===================== FLOOR ===================== */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
@@ -384,6 +392,7 @@ export default function Room() {
 
       {/* ===================== WALL SHELVING (back wall) ===================== */}
       {/* Upper shelf y=2.2 */}
+      <CuboidCollider args={[2.5, 0.02, 0.125]} position={[0.5, 2.2, -D / 2 + 0.15]} />
       <mesh position={[0.5, 2.2, -D / 2 + 0.15]} castShadow receiveShadow>
         <boxGeometry ref={el => geoRefs.current.push(el)} args={[5, 0.04, 0.25]} />
         <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#c8a97a" roughness={0.7} />
@@ -399,6 +408,7 @@ export default function Room() {
       ))}
 
       {/* Lower shelf y=1.7 */}
+      <CuboidCollider args={[2.5, 0.02, 0.125]} position={[0.5, 1.7, -D / 2 + 0.15]} />
       <mesh position={[0.5, 1.7, -D / 2 + 0.15]} castShadow receiveShadow>
         <boxGeometry ref={el => geoRefs.current.push(el)} args={[5, 0.04, 0.25]} />
         <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#c8a97a" roughness={0.7} />
@@ -412,6 +422,6 @@ export default function Room() {
           </mesh>
         </group>
       ))}
-    </group>
+    </RigidBody>
   )
 }

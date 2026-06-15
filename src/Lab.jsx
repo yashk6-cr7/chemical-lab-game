@@ -12,8 +12,7 @@ import Room from './components/lab/Room'
 import Bench from './components/lab/Bench'
 import FumeHood from './components/lab/FumeHood'
 import SafetyCorner from './components/lab/SafetyCorner'
-import PlayerControls from './components/lab/PlayerControls'
-import Character from './components/lab/Character'
+import Player from './components/lab/Player'
 import ThirdPersonCamera from './components/lab/ThirdPersonCamera'
 import SafetyGearStation from './components/lab/SafetyGearStation'
 
@@ -367,6 +366,9 @@ export default function Lab() {
             <TitrationSetup />
             <Pipette />
             <MysterySubstance />
+
+            {/* ── Third-Person Player System ── */}
+            <Player />
           </Physics>
 
           {/* Held bottle follows camera */}
@@ -385,9 +387,7 @@ export default function Lab() {
           {/* Camera dizziness — desktop only (CSS transform sway) */}
           {!IS_MOBILE && <DizzinessEffect />}
 
-          {/* ── Third-Person Player System ── */}
-          <PlayerControls />
-          <Character />
+          {/* ── Third-Person Camera System ── */}
           <ThirdPersonCamera />
           
           {/* Physical Safety Gear */}
