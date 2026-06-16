@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import { useDisposable } from '../../utils/disposal'
+import LiquidRenderer from './LiquidRenderer'
 
 // animation.md: @react-spring/three for 3D spring physics — framer-motion is HTML ONLY
 // Pre-allocate vectors outside component to avoid GC in useFrame (r3f.md)
@@ -53,6 +54,10 @@ export default function ChemicalPickup() {
   const heldChemical = useLabStore(state => state.heldChemical)
   const isPouring    = useLabStore(state => state.isPouring)
   const putDownBottle = useLabStore(state => state.putDownBottle)
+  const isHoldingBeaker = useLabStore(state => state.isHoldingBeaker)
+  const heldBeakerId    = useLabStore(state => state.heldBeakerId)
+  const beakers         = useLabStore(state => state.beakers)
+  const putDownBeaker   = useLabStore(state => state.putDownBeaker)
 
   const groupRef = useRef()
 
@@ -67,6 +72,14 @@ export default function ChemicalPickup() {
     if (heldChemical) setActiveChemical(heldChemical)
   }, [heldChemical])
 
+  const [activeBeaker, setActiveBeaker] = useState(null)
+  useEffect(() => {
+    if (heldBeakerId) {
+      const b = beakers.find(b => b.id === heldBeakerId)
+      if (b) setActiveBeaker(b)
+    }
+  }, [heldBeakerId, beakers])
+
   // Label texture — useMemo + dispose on unmount (performance.md)
   const labelTexture = useMemo(() => {
     if (!activeChemical) return null
@@ -77,8 +90,11 @@ export default function ChemicalPickup() {
 
   // Key Q to put down
   const handleKeyDown = useCallback((e) => {
-    if (e.code === 'KeyQ' && heldChemical) putDownBottle()
-  }, [heldChemical, putDownBottle])
+    if (e.code === 'KeyQ') {
+      if (heldChemical) putDownBottle()
+      if (isHoldingBeaker && heldBeakerId) putDownBeaker(heldBeakerId, [0, 0.92, 0]) // Fallback drop position, interaction handles actual drop usually
+    }
+  }, [heldChemical, putDownBottle, isHoldingBeaker, heldBeakerId, putDownBeaker])
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
@@ -121,11 +137,11 @@ export default function ChemicalPickup() {
     groupRef.current.quaternion.copy(_camQuat).multiply(_localQuat)
   })
 
-  const scale = heldChemical ? 1 : 0
+  const scale = (heldChemical || isHoldingBeaker) ? 1 : 0
 
   return (
     <group ref={groupRef} scale={scale}>
-      {activeChemical && (
+      {activeChemical && heldChemical && (
         <>
           {/* Bottle body — transmission, no transparent flag (threejs.md) */}
           <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
@@ -184,6 +200,45 @@ export default function ChemicalPickup() {
             castShadow={false}
           />
         </>
+      )}
+
+      {/* Held Beaker Rendering */}
+      {isHoldingBeaker && activeBeaker && (
+        <group position={[0, -0.1, 0]}> {/* Adjust offset so it sits right in hand */}
+          <mesh position={[0, 0.09, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.07, 0.07, 0.18, 32]} />
+            <meshPhysicalMaterial 
+              color="#ffffff"
+              transmission={0.95}
+              roughness={0.05}
+              thickness={0.02}
+              ior={1.52}
+              transparent={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+
+          <LiquidRenderer 
+            fillLevel={activeBeaker.totalVolume / 100} 
+            color={activeBeaker.mixedColor} 
+            temperature={activeBeaker.temperature}
+          />
+
+          {/* Volume markings */}
+          {[...Array(4)].map((_, i) => (
+            <mesh key={`mark-${i}`} position={[0, 0.04 + i * 0.04, 0.071]}>
+              <planeGeometry args={[0.02, 0.002]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+          ))}
+
+          {activeBeaker.isCracked && (
+            <mesh position={[0, 0.09, 0.072]}>
+              <planeGeometry args={[0.05, 0.1]} />
+              <meshBasicMaterial color="#ffffff" transparent opacity={0.5} wireframe />
+            </mesh>
+          )}
+        </group>
       )}
     </group>
   )

@@ -35,6 +35,9 @@ export default function Beaker({ beaker }) {
     setHoverTarget(null)
   }, [setHoverTarget])
 
+  const isHoldingBottle  = useLabStore(state => state.isHoldingBottle)
+  const heldChemical     = useLabStore(state => state.heldChemical)
+
   const handleClick = useCallback((e) => {
     e.stopPropagation()
     const store = useLabStore.getState()
@@ -83,10 +86,21 @@ export default function Beaker({ beaker }) {
       return
     }
 
+    // IF holding a bottle, pour the chemical into the beaker!
+    if (isHoldingBottle && heldChemical) {
+      store.setIsPouring(true)
+      // Small delay to simulate pouring animation
+      setTimeout(() => {
+        store.pourIntoBeaker(beaker.id, heldChemical, 20) // Pour 20mL
+        store.setIsPouring(false)
+      }, 500)
+      return
+    }
+
     if (!isHoldingBeaker) {
       pickUpBeaker(beaker.id)
     }
-  }, [isHoldingBeaker, pickUpBeaker, beaker])
+  }, [isHoldingBeaker, isHoldingBottle, heldChemical, pickUpBeaker, beaker])
 
   // physics.md: Handle high-velocity impacts
   const handleCollision = useCallback(() => {
