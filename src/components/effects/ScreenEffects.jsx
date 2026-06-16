@@ -16,6 +16,7 @@ export function ScreenEffects() {
 
   // Derive active effect types from consequence queue
   const hasFire = isFireActive || consequenceQueue.some(e => e.type === 'fire_hazard')
+  const hasExplosion = consequenceQueue.some(e => e.type === 'explosion')
   const hasEyeExposure = eyeExposureActive || consequenceQueue.some(e => e.type === 'eye_exposure')
   const hasSkinExposure = consequenceQueue.some(e => e.type === 'skin_exposure')
   const hasCrack = consequenceQueue.some(e => e.type === 'beaker_crack')
@@ -87,21 +88,74 @@ export function ScreenEffects() {
         )}
       </AnimatePresence>
 
-      {/* ── Fire: Animated flame border ── */}
+      {/* ── Fire: Animated flame border + warning ── */}
       <AnimatePresence>
         {hasFire && (
-          <motion.div
-            key="fire-edge"
-            className="absolute inset-0 pointer-events-none z-[45]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0.3, 0.7, 0.4, 0.8, 0.35, 0.65, 0.3] }}
-            exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            transition={{ duration: 0.4, repeat: Infinity }}
-            style={{
-              background: 'radial-gradient(ellipse at center, transparent 45%, rgba(220,70,0,0.7) 100%)',
-              boxShadow: 'inset 0 0 80px rgba(255,100,0,0.4)',
-            }}
-          />
+          <>
+            <motion.div
+              key="fire-edge"
+              className="absolute inset-0 pointer-events-none z-[45]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0.3, 0.7, 0.4, 0.8, 0.35, 0.65, 0.3] }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+              transition={{ duration: 0.4, repeat: Infinity }}
+              style={{
+                background: 'radial-gradient(ellipse at center, transparent 45%, rgba(220,70,0,0.7) 100%)',
+                boxShadow: 'inset 0 0 80px rgba(255,100,0,0.4)',
+              }}
+            />
+            <motion.div
+              key="fire-warning"
+              className="absolute top-1/4 left-0 right-0 pointer-events-none z-[46] flex justify-center"
+              animate={{ opacity: [1, 0.4, 1] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            >
+              <div style={{ background: 'rgba(120,0,0,0.85)', border: '2px solid #ef4444', borderRadius: 16, padding: '12px 28px', textAlign: 'center' }}>
+                <div style={{ color: '#fca5a5', fontSize: 28, fontWeight: 900 }}>🔥 FIRE!</div>
+                <div style={{ color: '#fecaca', fontSize: 13, marginTop: 4 }}>Use the fire extinguisher on the wall!</div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Explosion: White flash + shockwave ring + screen shake ── */}
+      <AnimatePresence>
+        {hasExplosion && (
+          <>
+            <motion.div
+              key="explosion-flash"
+              className="absolute inset-0 pointer-events-none z-[70]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0.6, 0] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              style={{ background: 'white' }}
+            />
+            <motion.div
+              key="explosion-ring"
+              className="absolute inset-0 pointer-events-none z-[68] flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.1 }}
+              animate={{ opacity: [0, 0.9, 0], scale: [0.1, 2.5] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            >
+              <div style={{ width: 300, height: 300, borderRadius: '50%', border: '8px solid rgba(255,140,0,0.8)', boxShadow: '0 0 60px 20px rgba(255,80,0,0.5)' }} />
+            </motion.div>
+            <motion.div
+              key="explosion-warning"
+              className="absolute top-1/3 left-0 right-0 pointer-events-none z-[69] flex justify-center"
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: [0, 1, 1, 0], y: [-30, 0, 0, 0] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2 }}
+            >
+              <div style={{ background: 'rgba(120,50,0,0.92)', border: '2px solid #f97316', borderRadius: 16, padding: '16px 32px', textAlign: 'center' }}>
+                <div style={{ color: '#fdba74', fontSize: 36, fontWeight: 900 }}>💥 EXPLOSION!</div>
+                <div style={{ color: '#fed7aa', fontSize: 14, marginTop: 6 }}>Violent chemical reaction!</div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

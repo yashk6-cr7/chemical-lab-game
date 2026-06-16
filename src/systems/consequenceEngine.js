@@ -1,5 +1,8 @@
 export function runCascade(reactionResult, beakerState, safetyState, environmentState) {
   let events = []
+  const hasGoggles = safetyState?.gogglesOn ?? false
+  const hasGloves  = safetyState?.glovesOn  ?? false
+  const hasCoat    = safetyState?.coatOn    ?? false
 
   // 1. Check safety violations from the reaction engine directly
   if (reactionResult.safetyViolations.includes("eye_exposure_risk") && !safetyState.gogglesOn) {
@@ -66,7 +69,7 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
     })
   }
 
-  // 2. Check reaction intensity
+  // 2. Check reaction intensity — beaker crack
   if (reactionResult.intensity > 7 && reactionResult.temperatureChange > 40) {
     events.push({
       id: Date.now() + Math.random(),
@@ -80,6 +83,42 @@ export function runCascade(reactionResult, beakerState, safetyState, environment
       },
       screenEffect: "crack_sound_visual",
       duration: 1
+    })
+  }
+
+  // 3. EXPLOSION — catalytic decomposition (elephant toothpaste), water+H₂SO₄ max heat, etc.
+  const isExplosive =
+    reactionResult.type === 'catalytic_decomposition' ||
+    reactionResult.isExplosive ||
+    (reactionResult.type === 'dangerous_dilution' && reactionResult.intensity >= 9)
+
+  if (isExplosive) {
+    events.push({
+      id: Date.now() + Math.random(),
+      type: "explosion",
+      severity: 5,
+      visualEffect: "explosion_flash",
+      message: {
+        easy: "💥 BOOM! Violent reaction — foam and steam erupted from the beaker!",
+        moderate: "Rapid gas release caused a pressure burst. In real life this would spray chemicals everywhere.",
+        complex: reactionResult.type === 'catalytic_decomposition'
+          ? "Catalytic decomposition: 2H₂O₂ → 2H₂O + O₂↑. Highly exothermic. O₂ expansion causes rapid foam/pressure burst."
+          : "Exothermic dilution of concentrated H₂SO₄. Steam explosion: water → vapor instantly (ΔH = -880 kJ/mol)."
+      },
+      screenEffect: "explosion_flash",
+      duration: 3
+    })
+    if (!hasGoggles) events.push({
+      id: Date.now() + Math.random(),
+      type: "eye_exposure",
+      severity: 5,
+      message: {
+        easy: "Chemical foam hit your unprotected eyes during the explosion! Always wear goggles!",
+        moderate: "Splash injury from pressure burst. Goggles are mandatory for oxidizer reactions.",
+        complex: "Projectile splash velocity during gas-driven overflow can exceed 2 m/s. Eye protection rated to EN166 required."
+      },
+      screenEffect: "blur_vignette_red",
+      duration: 3
     })
   }
 
