@@ -449,13 +449,16 @@ const useLabStore = create((set, get) => ({
   })),
   putDownBottle: () => set({ heldChemical: null, heldBottleId: null, isHoldingBottle: false }),
 
-  pickUpBeaker: (beakerId) => set({
+  pickUpBeaker: (beakerId) => set(state => ({
     isHoldingBeaker: true,
     heldBeakerId: beakerId,
     isHoldingBottle: false,
     heldBottleId: null,
-    heldChemical: null
-  }),
+    heldChemical: null,
+    hotplate: state.hotplate.beakerOnTop === beakerId 
+      ? { ...state.hotplate, beakerOnTop: null } 
+      : state.hotplate
+  })),
   putDownBeaker: (beakerId, newPosition) => set((state) => ({
     isHoldingBeaker: false,
     heldBeakerId: null,

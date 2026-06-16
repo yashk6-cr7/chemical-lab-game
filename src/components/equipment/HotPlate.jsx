@@ -124,9 +124,19 @@ export default function HotPlate({ position = [-1.5, 0.955, 0] }) {
 
   const handleClick = useCallback((e) => {
     e.stopPropagation()
+    const store = useLabStore.getState()
+    
+    // If holding a beaker, place it on the hotplate
+    if (store.isHoldingBeaker && store.heldBeakerId) {
+      // position is the HotPlate's absolute position. Beaker sits slightly above it.
+      store.putDownBeaker(store.heldBeakerId, [position[0], position[1] + 0.045, position[2]])
+      store.placeBeakerOnHotplate(store.heldBeakerId)
+      return
+    }
+
     // Open temperature control UI (2D overlay)
-    useLabStore.getState().setShowHotplateUI?.(true)
-  }, [])
+    store.setShowHotplateUI?.(true)
+  }, [position])
 
   const handlePointerOver = useCallback((e) => {
     e.stopPropagation()
