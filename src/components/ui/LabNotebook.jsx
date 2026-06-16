@@ -147,29 +147,30 @@ export const LabNotebook = memo(function LabNotebook() {
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm pointer-events-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-md pointer-events-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 20 }}
         transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-        className="w-full max-w-5xl h-[85vh] bg-stone-100 rounded-xl shadow-2xl flex flex-col overflow-hidden text-stone-800"
+        className="w-full max-w-5xl h-[85vh] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col overflow-hidden text-stone-100"
       >
         {/* Header */}
-        <div className="bg-stone-200 border-b border-stone-300 p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold font-serif flex items-center gap-2">
-            📔 Student Lab Notebook
+        <div className="bg-black/20 border-b border-white/10 p-5 flex justify-between items-center">
+          <h2 className="text-xl font-bold tracking-wide flex items-center gap-3">
+            <span className="text-2xl">📓</span> 
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Digital Lab Notebook</span>
           </h2>
           <div className="flex gap-3">
             <button 
               onClick={createNewPage}
-              className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded font-medium shadow-sm transition-colors"
+              className="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-full font-semibold shadow-lg shadow-cyan-500/30 transition-all hover:scale-105"
             >
-              + New Page
+              + New Entry
             </button>
             <button 
               onClick={() => setShowNotebook(false)}
-              className="px-4 py-1.5 bg-stone-300 hover:bg-stone-400 text-stone-800 rounded font-bold transition-colors"
+              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full font-semibold border border-white/10 transition-all hover:scale-105"
             >
               ✕ Close
             </button>
@@ -178,20 +179,20 @@ export const LabNotebook = memo(function LabNotebook() {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar - Pages list */}
-          <div className="w-64 bg-stone-200/50 border-r border-stone-300 overflow-y-auto p-2 flex flex-col gap-1">
+          <div className="w-64 bg-black/20 border-r border-white/10 overflow-y-auto p-3 flex flex-col gap-2">
             {pages.length === 0 ? (
-              <div className="text-stone-500 text-sm p-4 text-center italic">No pages yet.</div>
+              <div className="text-white/40 text-sm p-4 text-center italic">No entries yet.</div>
             ) : (
               [...pages].reverse().map(page => (
                 <button
                   key={page.id}
                   onClick={() => setActiveId(page.id)}
-                  className={`text-left px-3 py-2 rounded text-sm transition-colors ${
-                    activeId === page.id ? 'bg-white shadow-sm font-bold text-cyan-800 border border-stone-200' : 'hover:bg-stone-200 text-stone-600'
+                  className={`text-left px-4 py-3 rounded-xl text-sm transition-all ${
+                    activeId === page.id ? 'bg-cyan-500/20 shadow-sm font-semibold text-cyan-100 border border-cyan-500/30' : 'hover:bg-white/5 text-white/60 hover:text-white border border-transparent'
                   }`}
                 >
                   <div className="truncate">{page.title}</div>
-                  <div className="text-xs font-mono text-stone-400 mt-0.5">
+                  <div className="text-[10px] font-mono text-white/40 mt-1 uppercase tracking-wider">
                     {new Date(page.timestamp).toLocaleDateString()} {new Date(page.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                 </button>
@@ -200,10 +201,10 @@ export const LabNotebook = memo(function LabNotebook() {
           </div>
 
           {/* Main Editor */}
-          <div className="flex-1 flex flex-col bg-white overflow-y-auto">
+          <div className="flex-1 flex flex-col bg-black/40 overflow-y-auto">
             {!currentPage ? (
-              <div className="flex-1 flex items-center justify-center text-stone-400 italic">
-                Select or create a page to begin writing.
+              <div className="flex-1 flex items-center justify-center text-white/40 italic">
+                Select or create an entry to begin writing.
               </div>
             ) : (
               <div className="p-8 max-w-3xl mx-auto w-full flex flex-col gap-6">
@@ -214,7 +215,7 @@ export const LabNotebook = memo(function LabNotebook() {
                     updateNotebookPage(activeId, { title: e.target.value })
                     triggerAutoSave()
                   }}
-                  className="text-3xl font-serif font-bold text-stone-800 border-b border-transparent hover:border-stone-200 focus:border-stone-300 outline-none bg-transparent"
+                  className="text-3xl font-bold tracking-wide text-white border-b border-transparent hover:border-white/10 focus:border-cyan-500/50 outline-none bg-transparent transition-colors"
                 />
 
                 <textarea
@@ -224,25 +225,25 @@ export const LabNotebook = memo(function LabNotebook() {
                     triggerAutoSave()
                   }}
                   placeholder="Observations and notes..."
-                  className="w-full h-48 p-0 border-none outline-none resize-none font-sans text-stone-700 leading-relaxed bg-transparent"
+                  className="w-full h-48 p-0 border-none outline-none resize-none font-sans text-white/80 leading-relaxed bg-transparent"
                   style={{
-                    backgroundImage: 'linear-gradient(transparent, transparent 27px, #e5e5e5 28px)',
+                    backgroundImage: 'linear-gradient(transparent, transparent 27px, rgba(255,255,255,0.05) 28px)',
                     backgroundSize: '100% 28px',
                     lineHeight: '28px'
                   }}
                 />
 
                 {/* Drawing Area */}
-                <div className="mt-4 border border-stone-300 rounded-lg overflow-hidden shadow-sm">
-                  <div className="bg-stone-100 p-2 border-b border-stone-300 flex items-center gap-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Drawing</span>
+                <div className="mt-4 border border-white/10 rounded-2xl overflow-hidden shadow-lg bg-black/20">
+                  <div className="bg-black/40 p-3 border-b border-white/10 flex items-center gap-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-white/50">Drawing</span>
                     
-                    <div className="flex gap-1 border-r border-stone-300 pr-4">
-                      {['#222222', '#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea'].map(color => (
+                    <div className="flex gap-2 border-r border-white/10 pr-4">
+                      {['#ffffff', '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7'].map(color => (
                         <button
                           key={color}
                           onClick={() => { setPenColor(color); setIsEraser(false); }}
-                          className={`w-6 h-6 rounded-full border-2 ${penColor === color && !isEraser ? 'border-stone-600 scale-110' : 'border-transparent hover:scale-110'} transition-transform`}
+                          className={`w-6 h-6 rounded-full border-2 ${penColor === color && !isEraser ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent hover:scale-110'} transition-all`}
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -250,27 +251,27 @@ export const LabNotebook = memo(function LabNotebook() {
 
                     <button
                       onClick={() => setIsEraser(true)}
-                      className={`px-3 py-1 text-sm rounded flex items-center gap-1 transition-colors ${isEraser ? 'bg-stone-300 font-bold' : 'hover:bg-stone-200'}`}
+                      className={`px-4 py-1.5 text-sm rounded-lg flex items-center gap-2 transition-colors ${isEraser ? 'bg-white/20 font-bold text-white shadow-inner' : 'hover:bg-white/10 text-white/70 hover:text-white'}`}
                     >
                       <span>🧼</span> Eraser
                     </button>
                     
                     <button
                       onClick={clearCanvas}
-                      className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors ml-auto"
+                      className="px-4 py-1.5 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-lg transition-colors ml-auto border border-red-500/20 hover:border-red-500/50"
                     >
                       Clear
                     </button>
                   </div>
                   
-                  <div className="bg-white relative">
+                  <div className="bg-white/5 relative">
                     <canvas
                       ref={canvasRef}
                       width={800}
                       height={300}
                       className="w-full h-[300px] cursor-crosshair touch-none"
                       style={{ 
-                        backgroundImage: 'radial-gradient(#e5e5e5 1px, transparent 1px)',
+                        backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)',
                         backgroundSize: '20px 20px'
                       }}
                       onPointerDown={handlePointerDown}
@@ -282,7 +283,7 @@ export const LabNotebook = memo(function LabNotebook() {
                 </div>
                 
                 <div className="flex justify-end pt-4">
-                   <span className="text-xs text-stone-400 italic mt-2">Auto-saved</span>
+                   <span className="text-[10px] text-white/30 uppercase tracking-widest mt-2">Auto-saved</span>
                 </div>
               </div>
             )}

@@ -8,11 +8,11 @@ const _target   = new THREE.Vector3()
 const _camPos   = new THREE.Vector3()
 const _offset   = new THREE.Vector3()
 
-const CAMERA_TARGET_OFFSET = new THREE.Vector3(0, 1.4, 0)
-const CAMERA_DISTANCE = 4.5
-const CAMERA_HEIGHT_OFFSET = 1.2
-const CAMERA_MIN_DIST = 2.0
-const CAMERA_MAX_DIST = 7.0
+const CAMERA_TARGET_OFFSET = new THREE.Vector3(0, 1.3, 0)
+const CAMERA_DISTANCE = 2.4
+const CAMERA_HEIGHT_OFFSET = 0.5
+const CAMERA_MIN_DIST = 1.0
+const CAMERA_MAX_DIST = 4.0
 
 export default function ThirdPersonCamera() {
   const { camera } = useThree()
@@ -27,8 +27,8 @@ export default function ThirdPersonCamera() {
     // Add a right-shoulder offset relative to the camera's yaw
     const rightX = Math.cos(cameraYaw)
     const rightZ = -Math.sin(cameraYaw)
-    _target.x += rightX * 0.45
-    _target.z += rightZ * 0.45
+    _target.x += rightX * 0.65
+    _target.z += rightZ * 0.65
 
     const r = Math.max(CAMERA_MIN_DIST, Math.min(CAMERA_MAX_DIST, CAMERA_DISTANCE))
     
