@@ -105,19 +105,81 @@ export function checkTemperatureThresholds(beaker, chemicalsData) {
             complex: 'Vapor pressure exceeds flash point threshold. Le Chatelier: heating shifts equilibrium toward vapor phase.',
           }
         })
-      } else if (chemData.id === 'hydrochloric_acid') {
+      } else if (chemData.id === 'hcl') {
         events.push({
           type: 'boiling_acid',
           chemicalId: chemData.id,
           effect: 'acid_vapor',
           airQualityDrop: true,
-          severity: 3,
+          severity: 4,
           description: {
-            easy: 'The acid is boiling — making dangerous toxic gas.',
-            complex: 'HCl(aq) → HCl(g)↑. Azeotrope at 20.2% HCl, 108.6°C. Highly toxic vapor.',
+            easy: '☠️ HCl is boiling! Invisible toxic fumes fill the air. Can cause severe lung damage.',
+            moderate: 'HCl forms an azeotrope at 20.2% concentration, boiling at 108.6°C. Toxic HCl gas released.',
+            complex: 'HCl(aq) → HCl(g)↑. Azeotrope at 20.2% HCl, 108.6°C. IDLH = 50 ppm. Highly toxic — corrosive to respiratory tract.',
           }
         })
       }
+    }
+
+    // SULFURIC ACID HEATING — fuming, dehydrating, dangerous
+    if (chemData.id === 'sulfuric_acid') {
+      if (temp >= 150 && temp < 300) {
+        events.push({
+          type: 'acid_fuming',
+          chemicalId: 'sulfuric_acid',
+          effect: 'acid_fumes',
+          airQualityDrop: true,
+          severity: 5,
+          description: {
+            easy: '☠️ Sulfuric acid is fuming! Toxic SO₃ gas is being released. Extremely dangerous — clear the area!',
+            moderate: 'Above 150°C, H₂SO₄ releases SO₃ fumes. Fuming sulfuric acid (oleum) is formed. Very corrosive vapor.',
+            complex: 'H₂SO₄ → SO₃(g) + H₂O at high temp. SO₃ is a lung irritant. If moisture is present: SO₃ + H₂O → H₂SO₄ mist (acid rain mechanism). IDLH SO₃ = 10 ppm.',
+          }
+        })
+      } else if (temp >= 300) {
+        events.push({
+          type: 'acid_decomposing',
+          chemicalId: 'sulfuric_acid',
+          effect: 'dense_fumes',
+          airQualityDrop: true,
+          severity: 5,
+          description: {
+            easy: '💀 CRITICAL! Sulfuric acid is decomposing at this temperature. Dense toxic gas clouds everywhere!',
+            moderate: 'Near boiling point (337°C). Concentrated SO₃ and H₂SO₄ vapors form a dense toxic mist.',
+            complex: 'H₂SO₄ boiling point = 337°C. Above 300°C near-complete decomposition to SO₃ + H₂O. Dehydrating agent attacks organic material. Contact with skin causes deep chemical burns.',
+          }
+        })
+      }
+    }
+
+    // POTASSIUM PERMANGANATE HEATING — decomposes releasing oxygen
+    if (chemData.id === 'potassium_permanganate' && temp >= 240) {
+      events.push({
+        type: 'kmno4_decomposition',
+        chemicalId: 'potassium_permanganate',
+        producesGas: true,
+        gasType: 'O2',
+        colorChange: '#4e342e', // turns from purple to brown MnO2
+        description: {
+          easy: '🔴 The purple crystals are decomposing! They turn brown and release oxygen gas. Fire hazard with organics!',
+          moderate: 'KMnO₄ decomposes above 240°C. Oxygen released. Brown MnO₂ residue forms.',
+          complex: '2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑. Onset ~240°C. Released O₂ acts as strong oxidizer — can ignite nearby combustibles spontaneously.',
+        }
+      })
+    }
+
+    // NaCl HEATED — flame test (for educational display)
+    if (chemData.id === 'nacl' && temp >= 200) {
+      events.push({
+        type: 'flame_test_sodium',
+        chemicalId: 'nacl',
+        effect: 'yellow_flame',
+        description: {
+          easy: '🟡 Yellow-orange glow! Sodium ions emit characteristic yellow light when heated.',
+          moderate: 'Flame test: Na⁺ ions are excited by heat and emit yellow light (589 nm) as electrons fall back to ground state.',
+          complex: 'Na+ 3s¹ → 3p¹ excitation at 589.0 nm and 589.6 nm (sodium D-lines). Atomic emission spectroscopy.',
+        }
+      })
     }
 
     // THERMAL DECOMPOSITION
