@@ -204,7 +204,7 @@ export default function Player() {
       if (characterGroupRef.current) {
         const moveAngle = Math.atan2(_move.x, _move.z)
         const currentY = characterGroupRef.current.rotation.y
-        const deltaAngle = (moveAngle + Math.PI) - currentY
+        const deltaAngle = moveAngle - currentY
         const normalizedDelta = ((deltaAngle + Math.PI) % (2 * Math.PI)) - Math.PI
         characterGroupRef.current.rotation.y += normalizedDelta * 10 * dt
       }
