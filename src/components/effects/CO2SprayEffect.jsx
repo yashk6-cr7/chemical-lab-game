@@ -8,6 +8,7 @@ const CO2_COUNT = 80
 
 export default function CO2SprayEffect({ nozzleRef }) {
   const isSpraying = useLabStore(state => state.isSpraying)
+  const characterYaw = useLabStore(state => state.characterYaw)
   const meshRef = useRef()
   const particles = useRef([])
 
@@ -38,8 +39,9 @@ export default function CO2SprayEffect({ nozzleRef }) {
             new THREE.Vector3(0.25, -0.15, -0.5).applyQuaternion(camera.quaternion)
           )
 
-      // Spray direction = camera forward
-      const sprayDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
+      // Spray direction = character forward
+      const yaw = characterYaw + Math.PI
+      const sprayDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
 
       // Emit ~8 particles per frame
       let emitted = 0
@@ -95,10 +97,10 @@ export default function CO2SprayEffect({ nozzleRef }) {
       // Slight drag
       p.velocity.multiplyScalar(0.96)
 
-      // Scale: grows as it expands, fades at end
+        // Scale: grows as it expands, fades at end
       const growPhase = Math.min(1, t * 3)
       const fadePhase = Math.max(0, 1 - (t - 0.7) * 3)
-      p.scale = growPhase * fadePhase * (0.04 + t * 0.06)
+      p.scale = growPhase * fadePhase * (0.04 + t * 0.08)
 
       dummy.position.copy(p.position)
       dummy.scale.setScalar(Math.max(0.001, p.scale))
@@ -116,15 +118,14 @@ export default function CO2SprayEffect({ nozzleRef }) {
       args={[null, null, CO2_COUNT]}
       frustumCulled={false}
     >
-      <sphereGeometry args={[1, 6, 6]} />
+      <sphereGeometry args={[1, 8, 8]} />
       <meshStandardMaterial
-        color="#cce8ff"
+        color="#ffffff"
         transparent
-        opacity={0.55}
+        opacity={0.8}
         depthWrite={false}
         roughness={1}
         metalness={0}
-        blending={THREE.AdditiveBlending}
       />
     </instancedMesh>
   )
