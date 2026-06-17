@@ -98,9 +98,16 @@ export default function FireExtinguisher() {
     if (hoverTarget === 'extinguisher') setHoverTarget(null)
   }
 
-  // Pickup on click
+  // Pickup / Put down on click
   const handleClick = () => {
-    if (!isHoldingExtinguisher && extinguisherCharge > 0) {
+    if (isHoldingExtinguisher) {
+      stopSpray()
+      putDownExtinguisher()
+    } else {
+      // If empty, automatically refill it when picked up again
+      if (extinguisherCharge <= 0) {
+        updateExtinguisherCharge(-100)
+      }
       setPinPulled(true)
       pickUpExtinguisher()
     }
