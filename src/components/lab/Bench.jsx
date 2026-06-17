@@ -189,19 +189,8 @@ function Sink({ position }) {
     setHoverTarget(null)
   }
 
-  const checkProximity = () => {
-    const playerPos = useLabStore.getState().playerPosition
-    if (!playerPos) return false
-    const dist = Math.sqrt(
-      (playerPos[0] - position[0]) ** 2 + 
-      (playerPos[2] - position[2]) ** 2
-    )
-    return useLabStore.getState().nearBench || dist < 2.5
-  }
-
   const handleBasinClick = (e) => {
     e.stopPropagation()
-    if (!checkProximity()) return
     if (isHoldingBeaker && heldBeakerId) {
       rinseBeaker(heldBeakerId)
     }
@@ -211,7 +200,7 @@ function Sink({ position }) {
 
   const handleTapClick = (e) => {
     e.stopPropagation()
-    if (!checkProximity()) return
+    // If player can click the tap in 3D, they're close enough — no extra proximity check needed
     const store = useLabStore.getState()
     if (!store.isHoldingBeaker || !store.heldBeakerId) return
     if (tapRunning) return
