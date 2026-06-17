@@ -23,23 +23,40 @@ export default function FireExtinguisher() {
   const addConsequence = useLabStore(state => state.addConsequence)
   const hoverTarget = useLabStore(state => state.hoverTarget)
   const setHoverTarget = useLabStore(state => state.setHoverTarget)
+  const characterPos = useLabStore(state => state.characterPos)
+  const characterYaw = useLabStore(state => state.characterYaw)
 
   const groupRef = useRef()
   const nozzleRef = useRef()
   const needleRef = useRef()
-  const { camera, gl } = useThree()
 
   const [pinPulled, setPinPulled] = useState(false)
+
+  // Use refs for math to avoid GC
+  const _camQuat = useRef(new THREE.Quaternion()).current
+  const _localQuat = useRef(new THREE.Quaternion()).current
+  const _euler = useRef(new THREE.Euler()).current
+  const _worldPos = useRef(new THREE.Vector3()).current
 
   // Handle E key interactions
   useFrame((state, delta) => {
     if (!groupRef.current) return
 
     if (isHoldingExtinguisher) {
-      // Attach to camera in held position
-      const holdPos = HELD_OFFSET.clone().applyQuaternion(camera.quaternion).add(camera.position)
-      groupRef.current.position.lerp(holdPos, 0.25)
-      groupRef.current.quaternion.slerp(camera.quaternion, 0.25)
+      // Calculate hand position relative to character
+      const yaw = characterYaw + Math.PI
+      _camQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
+      
+      // Pitch slightly upward for aiming
+      _euler.set(0.2, 0, 0)
+      _localQuat.setFromEuler(_euler)
+
+      _worldPos.set(characterPos.x, characterPos.y, characterPos.z)
+      // Offset: right side, waist height, forward
+      _worldPos.add(new THREE.Vector3(0.4, 0.7, -0.4).applyQuaternion(_camQuat))
+
+      groupRef.current.position.lerp(_worldPos, 0.25)
+      groupRef.current.quaternion.slerp(_camQuat.clone().multiply(_localQuat), 0.25)
 
       // Deplete charge while spraying
       if (isSpraying && extinguisherCharge > 0) {
@@ -47,7 +64,6 @@ export default function FireExtinguisher() {
 
         // Check if suppressing fire
         if (isFireActive) {
-          // Simple check: if holding extinguisher and fire is active, suppress it
           extinguishFire()
           addConsequence({
             id: Date.now(),
