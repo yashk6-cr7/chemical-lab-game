@@ -66,12 +66,18 @@ export default function PourStream({ active, color, startPos, endY }) {
     })
   })
 
-  const distance = Math.max(0.01, startPos.y - endY)
+  // Handle arrays, objects, or undefined
+  const sX = startPos?.x ?? startPos?.[0] ?? 0
+  const sY = startPos?.y ?? startPos?.[1] ?? 0
+  const sZ = startPos?.z ?? startPos?.[2] ?? 0
+  const finalEndY = endY ?? -1
+
+  const distance = Math.max(0.01, sY - finalEndY)
 
   return (
     <group>
       {/* Continuous Stream */}
-      <group ref={groupRef} position={startPos}>
+      <group ref={groupRef} position={[sX, sY, sZ]}>
         <mesh ref={streamMeshRef} position={[0, -distance / 2, 0]}>
           {/* Cylinder stretching from startPos to endY */}
           <cylinderGeometry args={[0.005, 0.003, distance, 8]} />
@@ -80,7 +86,7 @@ export default function PourStream({ active, color, startPos, endY }) {
       </group>
 
       {/* Splash at the bottom */}
-      <group ref={splashGroupRef} position={[startPos.x, endY, startPos.z]}>
+      <group ref={splashGroupRef} position={[sX, finalEndY, sZ]}>
         {splashParticles.map((_, i) => (
           <mesh 
             key={`splash-${i}`}
