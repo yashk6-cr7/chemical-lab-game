@@ -301,6 +301,7 @@ export default function EffectsManager() {
     'acid_metal', 'catalytic_decomposition',
     'neutralization_violent', 'neutralization_gentle',
     'clock_reaction',
+    'mixing_only', 'indicator_response'
   ].includes(type)
 
   // Helper: should this reaction show fire?
@@ -323,7 +324,7 @@ export default function EffectsManager() {
             {isBubbly(type) && totalVolume > 0 && (
               <BubbleEffect
                 position={[position[0], position[1] + 0.05, position[2]]}
-                intensity={Math.min(intensity, budget.maxParticles / 20)}
+                intensity={Math.max(1, Math.min(intensity, budget.maxParticles / 20))}
                 color={type === 'catalytic_decomposition' ? '#ffffff' : '#e0f0ff'}
                 foamMode={type === 'catalytic_decomposition' && intensity >= 8}
               />

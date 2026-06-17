@@ -63,10 +63,12 @@ export function calculateReaction(beakerContents, temperature, pressure = 1.0, h
   let hasAmmonia = false, hasIronFilings = false, hasNa2S2O3 = false
   let flammableContent = null, volatileContent = null
   let totalVolume = 0, weightedPHSum = 0
+  let reactants = []
 
   beakerContents.forEach(item => {
     const d = getChemicalData(item.chemicalId)
     if (!d) return
+    reactants.push(d)
     totalVolume += item.amount
     weightedPHSum += (d.pH * item.amount)
     if (d.isAcid) { hasAcid = true; if (d.reactivityGroup === 'strong_acid') strongAcid = d; else weakAcid = d }
@@ -337,5 +339,6 @@ export function calculateReaction(beakerContents, temperature, pressure = 1.0, h
     result.visualEffects.push('vapor_drift')
   }
 
+  result.reactants = reactants
   return result
 }

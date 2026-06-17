@@ -465,19 +465,70 @@ const REACTION_CONTENT = {
   }
 }
 
-// Fallback for unknown reaction types
+// Fallback for unknown reaction types (Dynamic Physical Mixture)
 function makeFallback(reactionResult) {
   const typeName = reactionResult?.type || 'unknown'
+  const reactants = reactionResult?.reactants || []
+  
+  // Format reactant names nicely
+  const rNames = reactants.map(r => r.name)
+  const uniqueNames = [...new Set(rNames)]
+  const titleNames = uniqueNames.length > 0 ? uniqueNames.join(' + ') : 'Chemicals'
+  
+  // Try to generate a formula-based equation
+  const rFormulas = reactants.map(r => r.formula || r.name)
+  const uniqueFormulas = [...new Set(rFormulas)]
+  const eqLeft = uniqueFormulas.length > 0 ? uniqueFormulas.join(' + ') : 'A + B'
+  const equation = `${eqLeft} → Mixture`
+
+  // ── Specific Fallbacks based on dynamic Type ──
+  if (typeName === 'indicator_response') {
+    return {
+      headline: `pH Indicator Check: ${titleNames}`,
+      body: `You mixed an indicator with other chemicals! Indicators are special molecules that change color depending on how acidic or basic a liquid is. They act like chemical detectives!`,
+      funFact: "Red cabbage juice is a natural pH indicator! You can use it at home to test if things in your kitchen are acids or bases.",
+      equation: reactionResult?.equation || `${eqLeft} ⇌ Color Change`,
+      moleculeKeys: { reactant1: null, reactant2: null, product1: null, product2: null },
+      energyData: { deltaH: 0, activationEnergy: 0, isExothermic: false },
+      followUpQuestions: ["What color would it turn if you added more acid?", "What happens if you add a strong base?", "Can you make it turn back to its original color?"],
+      realWorldLink: "Scientists use pH indicators all the time to test swimming pool water, fish tanks, and even soil for farming!",
+      mechanismSteps: [
+        {
+          step: 1,
+          title: "Proton Transfer",
+          description: "The indicator molecule gains or loses a tiny hydrogen ion (H⁺) depending on the liquid it is in."
+        },
+        {
+          step: 2,
+          title: "Shape Change",
+          description: "Because it lost or gained a piece, the molecule's shape changes! This new shape absorbs light differently, which is why your eyes see a different color."
+        }
+      ]
+    }
+  }
+
+  // ── Generic Physical Mixture Fallback ──
   return {
-    headline: "A chemical reaction occurred",
-    body: `The chemicals interacted and produced a noticeable change. (Type: ${typeName})`,
-    funFact: "Every chemical reaction either absorbs or releases energy — chemistry is really just about energy moving around.",
-    equation: reactionResult?.equation || '',
+    headline: `Physical Mixture: ${titleNames}`,
+    body: `You mixed ${titleNames.toLowerCase()} together. When chemicals mix but don't explode or change color, they form a "mixture". They are hanging out in the same beaker, but their atoms haven't rearranged into a new substance!`,
+    funFact: "Even if nothing exciting happens, physical mixing is super important! The air you breathe is just a big physical mixture of oxygen and nitrogen.",
+    equation: reactionResult?.equation || equation,
     moleculeKeys: { reactant1: null, reactant2: null, product1: null, product2: null },
-    energyData: { deltaH: reactionResult?.temperatureChange || 0, activationEnergy: 30, isExothermic: (reactionResult?.temperatureChange || 0) < 0 },
-    followUpQuestions: ["What would happen if you changed the temperature?", "What would a stronger version of these chemicals do?", "Can this reaction be reversed?"],
-    realWorldLink: "Chemical reactions power everything from your phone battery to the Sun itself.",
-    mechanismSteps: []
+    energyData: { deltaH: reactionResult?.temperatureChange || 0, activationEnergy: 0, isExothermic: (reactionResult?.temperatureChange || 0) < 0 },
+    followUpQuestions: ["What happens if you add a catalyst?", "Can we separate these chemicals again?", "What if we heat this mixture up?"],
+    realWorldLink: "Making lemonade from water, sugar, and lemon juice is a physical mixture — no explosions, just a tasty drink!",
+    mechanismSteps: [
+      {
+        step: 1,
+        title: "Diffusion",
+        description: "The molecules of the chemicals start bumping into each other and spreading out evenly across the liquid."
+      },
+      {
+        step: 2,
+        title: "Equilibrium",
+        description: "The mixture settles down. Without a spark or a chemical reason to change, they stay as a stable mixture!"
+      }
+    ]
   }
 }
 

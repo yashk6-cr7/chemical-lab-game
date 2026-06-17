@@ -30,10 +30,12 @@ function calculateReaction(beakerContents, temperature, pressure, hasGoggles, ha
   let hasH2SO4 = false, hasWater = false, hasCuSO4 = false
   let flammableContent = null, volatileContent = null
   let totalVolume = 0, weightedPHSum = 0
+  let reactants = []
 
   beakerContents.forEach(item => {
     const data = getChemicalData(item.chemicalId)
     if (!data) return
+    reactants.push(data)
     totalVolume += item.amount
     weightedPHSum += (data.pH * item.amount)
     if (data.isAcid) { hasAcid = true; if (data.reactivityGroup === 'strong_acid') strongAcid = data; else weakAcid = data }
@@ -176,11 +178,11 @@ function calculateReaction(beakerContents, temperature, pressure, hasGoggles, ha
     result.visualEffects.push('vapor_drift')
   }
 
-  // Arrhenius multiplier — doubles reaction rate per 10°C above 22°C
   const tempMultiplier = Math.pow(2, (temperature - 22) / 10)
   result.intensity = Math.min(10, result.intensity * tempMultiplier)
   if (result.temperatureChange) result.temperatureChange *= Math.min(tempMultiplier, 3)
 
+  result.reactants = reactants
   return result
 }
 
