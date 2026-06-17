@@ -1,110 +1,102 @@
 /* eslint-disable */
-import { useMemo, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-// shaders.md: Full ShaderMaterial upgrade for liquid with Fresnel effect
+// Renders visible colored liquid inside a beaker cylinder
 export default function LiquidRenderer({ fillLevel, color, temperature, reactionIntensity = 0 }) {
-  const liquidMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: new THREE.Color(color) },
-        uOpacity: { value: 1.0 },
-        uFillLevel: { value: fillLevel },
-        uFresnelPower: { value: 2.0 },
-        uBoilIntensity: { value: 0.0 },
-        uReactionIntensity: { value: reactionIntensity }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewDir;
-        varying vec3 vWorldPos;
-        uniform float uTime;
-        uniform float uBoilIntensity;
-        uniform float uReactionIntensity;
-        
-        void main() {
-          vUv = uv;
-          vNormal = normalize(normalMatrix * normal);
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vWorldPos = worldPos.xyz;
-          vViewDir = normalize(cameraPosition - worldPos.xyz);
-          
-          vec3 pos = position;
-          // Wave displacement + boiling turbulence
-          float waveX = sin(pos.x * 12.0 + uTime * (2.0 + uReactionIntensity)) * 0.002;
-          float waveZ = sin(pos.z * 10.0 + uTime * (1.5 + uReactionIntensity)) * 0.002;
-          
-          float totalTurbulence = uBoilIntensity + (uReactionIntensity * 0.5);
-          float boil = sin(pos.x * 30.0 + uTime * 15.0) * sin(pos.z * 25.0 + uTime * 12.0) * 0.004 * totalTurbulence;
-          
-          // Only displace the top surface (y > 0)
-          if (pos.y > 0.0) {
-            pos.y += waveX + waveZ + boil;
-          }
-          
-          gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewDir;
-        varying vec3 vWorldPos;
-        uniform vec3 uColor;
-        uniform float uOpacity;
-        uniform float uFresnelPower;
-        
-        void main() {
-          // Fresnel effect (brighter at edges)
-          float fresnel = pow(1.0 - max(0.0, dot(vNormal, vViewDir)), uFresnelPower);
-          
-          vec3 finalColor = mix(uColor, uColor * 1.8, fresnel * 0.4);
-          
-          gl_FragColor = vec4(finalColor, uOpacity);
-        }
-      `,
-      transparent: false,
-      depthWrite: true, // Write to depth to render properly inside beaker
-      side: THREE.FrontSide
-    })
-  }, []) // Empty deps, update color via uniform
+  const liquidRef = useRef()
+  const surfaceRef = useRef()
+  const matRef = useRef()
+  const surfaceMatRef = useRef()
 
-  // Update time uniform every frame (shaders.md)
-  useFrame((state) => {
-    if (liquidMaterial) {
-      liquidMaterial.uniforms.uTime.value = state.clock.elapsedTime
-      liquidMaterial.uniforms.uBoilIntensity.value = Math.max(0, (temperature - 80) / 40) // Start boiling effect at 80C
-      // Smoothly approach the target reaction intensity
-      liquidMaterial.uniforms.uReactionIntensity.value += (reactionIntensity - liquidMaterial.uniforms.uReactionIntensity.value) * 0.1
+  // Safely parse color — fallback to blue-tinted water if invalid
+  const safeColor = (color && typeof color === 'string' && color.length > 2) ? color : '#b3e5fc'
+
+  // Update color reactively
+  useEffect(() => {
+    if (matRef.current) {
+      try { matRef.current.color.set(safeColor) } catch (e) {}
     }
+    if (surfaceMatRef.current) {
+      try { surfaceMatRef.current.color.set(safeColor) } catch (e) {}
+    }
+  }, [safeColor])
+
+  // Animate surface wave & boiling
+  useFrame((state) => {
+    if (!surfaceRef.current) return
+    const t = state.clock.elapsedTime
+    const boil = Math.max(0, (temperature - 70) / 40)
+    const wave = reactionIntensity * 0.3 + boil * 0.5
+    surfaceRef.current.rotation.y = t * 0.5
+    surfaceRef.current.position.y = Math.sin(t * (2 + wave * 4)) * (0.002 + wave * 0.006)
   })
 
-  // Update color when mixing happens
-  useEffect(() => {
-    if (liquidMaterial) {
-      liquidMaterial.uniforms.uColor.value.set(color)
-      liquidMaterial.uniforms.uFillLevel.value = fillLevel
-    }
-  }, [color, fillLevel, liquidMaterial])
+  if (!fillLevel || fillLevel <= 0) return null
 
-  // Dispose on unmount
-  useEffect(() => {
-    return () => liquidMaterial.dispose()
-  }, [liquidMaterial])
+  const height = Math.max(0.005, fillLevel * 0.155)
+  const yBase = 0.012  // sits just above beaker bottom
+  const isBoiling = temperature > 85
+  const isReacting = reactionIntensity > 0.3
 
-  if (fillLevel <= 0) return null
-
-  // Calculate geometry size based on fill level
-  const height = Math.max(0.01, fillLevel * 0.16)
-  const yOffset = height / 2
+  // Liquid opacity — more opaque for concentrated chemicals
+  const opacity = Math.min(0.92, 0.55 + fillLevel * 0.35)
 
   return (
-    <mesh position={[0, yOffset + 0.01, 0]}>
-      <cylinderGeometry args={[0.065, 0.065, height, 32]} />
-      <primitive object={liquidMaterial} attach="material" />
-    </mesh>
+    <group>
+      {/* Main liquid body — fills beaker from bottom to fill level */}
+      <mesh ref={liquidRef} position={[0, yBase + height / 2, 0]}>
+        <cylinderGeometry args={[0.063, 0.063, height, 24]} />
+        <meshStandardMaterial
+          ref={matRef}
+          color={safeColor}
+          transparent
+          opacity={opacity}
+          roughness={0.05}
+          metalness={0.0}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Liquid surface — top face with animated shimmer */}
+      <group ref={surfaceRef} position={[0, yBase + height, 0]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.063, 24]} />
+          <meshStandardMaterial
+            ref={surfaceMatRef}
+            color={safeColor}
+            transparent
+            opacity={Math.min(1, opacity + 0.1)}
+            roughness={0.02}
+            metalness={0.1}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+
+      {/* Boiling bubbles */}
+      {isBoiling && [0, 1, 2, 3].map(i => {
+        const angle = (i / 4) * Math.PI * 2
+        return (
+          <mesh key={i} position={[
+            Math.cos(angle) * 0.03,
+            yBase + height * 0.5,
+            Math.sin(angle) * 0.03
+          ]}>
+            <sphereGeometry args={[0.004, 6, 6]} />
+            <meshStandardMaterial color="#ffffff" transparent opacity={0.5} />
+          </mesh>
+        )
+      })}
+
+      {/* Reaction glow — faint emissive ring at surface when reacting */}
+      {isReacting && (
+        <mesh position={[0, yBase + height + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.055, 0.068, 24]} />
+          <meshBasicMaterial color={safeColor} transparent opacity={0.4 * reactionIntensity} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
   )
 }

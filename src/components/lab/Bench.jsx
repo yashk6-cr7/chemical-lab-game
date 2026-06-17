@@ -1,10 +1,10 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import { useRefDisposal } from '../../utils/disposal'
 import HotPlate from '../equipment/HotPlate'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
-import PourStream from '../effects/PourStream'
 
 // ─── Bench Damage: canvas texture compositing ───────────────────────────────
 function useDamageTexture() {
@@ -128,6 +128,44 @@ function PanelLine({ position, width, height }) {
   )
 }
 
+// Simple animated water stream that appears when tap is running
+function WaterStream() {
+  const meshRef = useRef()
+  useFrame((state) => {
+    if (!meshRef.current) return
+    // Wobble the stream slightly for realism
+    const t = state.clock.elapsedTime
+    meshRef.current.scale.x = 1 + Math.sin(t * 20) * 0.1
+    meshRef.current.scale.z = 1 + Math.cos(t * 18) * 0.1
+  })
+  return (
+    <group position={[0, 0, 0.09]}>
+      {/* Main stream cylinder falling from spout to basin */}
+      <mesh ref={meshRef} position={[0, -0.2, 0]}>
+        <cylinderGeometry args={[0.006, 0.012, 0.4, 8]} />
+        <meshStandardMaterial
+          color="#81d4fa"
+          transparent
+          opacity={0.75}
+          roughness={0.1}
+          metalness={0.0}
+        />
+      </mesh>
+      {/* Splash droplets at basin bottom */}
+      {[0, 1, 2, 3, 4].map(i => (
+        <mesh key={i} position={[
+          Math.sin(i * 1.26) * 0.04,
+          -0.38,
+          Math.cos(i * 1.26) * 0.04
+        ]}>
+          <sphereGeometry args={[0.007, 6, 6]} />
+          <meshStandardMaterial color="#b3e5fc" transparent opacity={0.6} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 // Sink assembly — stainless basin + chrome tap
 function Sink({ position }) {
   const setHoverTarget = useLabStore(state => state.setHoverTarget)
@@ -151,9 +189,19 @@ function Sink({ position }) {
     setHoverTarget(null)
   }
 
+  const checkProximity = () => {
+    const playerPos = useLabStore.getState().playerPosition
+    if (!playerPos) return false
+    const dist = Math.sqrt(
+      (playerPos[0] - position[0]) ** 2 + 
+      (playerPos[2] - position[2]) ** 2
+    )
+    return useLabStore.getState().nearBench || dist < 2.5
+  }
+
   const handleBasinClick = (e) => {
     e.stopPropagation()
-    if (!useLabStore.getState().nearBench) return
+    if (!checkProximity()) return
     if (isHoldingBeaker && heldBeakerId) {
       rinseBeaker(heldBeakerId)
     }
@@ -163,14 +211,15 @@ function Sink({ position }) {
 
   const handleTapClick = (e) => {
     e.stopPropagation()
-    if (!useLabStore.getState().nearBench) return
-    if (isHoldingBeaker && heldBeakerId && !tapRunning) {
-      setTapRunning(true)
-      setTimeout(() => {
-        pourIntoBeaker(heldBeakerId, { id: 'water', name: 'Water', color: '#e0f7fa' }, 20, '#e0f7fa')
-        setTapRunning(false)
-      }, 1000)
-    }
+    if (!checkProximity()) return
+    const store = useLabStore.getState()
+    if (!store.isHoldingBeaker || !store.heldBeakerId) return
+    if (tapRunning) return
+    setTapRunning(true)
+    setTimeout(() => {
+      pourIntoBeaker(store.heldBeakerId, { id: 'water', name: 'Water', color: '#b3e5fc' }, 25, '#b3e5fc')
+      setTapRunning(false)
+    }, 1200)
   }
 
   return (
@@ -237,10 +286,8 @@ function Sink({ position }) {
           <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
         </mesh>
         
-        {/* Water Stream Visual */}
-        <group position={[0, 0.28, 0.08]}>
-          <PourStream active={tapRunning} color="#e0f7fa" startPos={{x:0, y:0, z:0}} endY={-0.35} />
-        </group>
+        {/* Inline water stream */}
+        {tapRunning && <WaterStream />}
       </group>
     </group>
   )
