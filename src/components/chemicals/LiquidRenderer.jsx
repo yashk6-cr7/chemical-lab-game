@@ -10,7 +10,7 @@ export default function LiquidRenderer({ fillLevel, color, temperature, reaction
       uniforms: {
         uTime: { value: 0 },
         uColor: { value: new THREE.Color(color) },
-        uOpacity: { value: 0.85 },
+        uOpacity: { value: 1.0 },
         uFillLevel: { value: fillLevel },
         uFresnelPower: { value: 2.0 },
         uBoilIntensity: { value: 0.0 },
@@ -66,8 +66,8 @@ export default function LiquidRenderer({ fillLevel, color, temperature, reaction
           gl_FragColor = vec4(finalColor, uOpacity);
         }
       `,
-      transparent: true,
-      depthWrite: false, // performance.md
+      transparent: false,
+      depthWrite: true, // Write to depth to render properly inside beaker
       side: THREE.FrontSide
     })
   }, []) // Empty deps, update color via uniform
