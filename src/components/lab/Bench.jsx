@@ -239,7 +239,7 @@ function Sink({ position }) {
         
         {/* Water Stream Visual */}
         <group position={[0, 0.28, 0.08]}>
-          <PourStream active={tapRunning} color="#e0f7fa" />
+          <PourStream active={tapRunning} color="#e0f7fa" startPos={{x:0, y:0, z:0}} endY={-0.35} />
         </group>
       </group>
     </group>
