@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import BubbleEffect from './BubbleEffect'
 import SteamEffect from './SteamEffect'
