@@ -493,16 +493,8 @@ function makeFallback(reactionResult) {
       followUpQuestions: ["What color would it turn if you added more acid?", "What happens if you add a strong base?", "Can you make it turn back to its original color?"],
       realWorldLink: "Scientists use pH indicators all the time to test swimming pool water, fish tanks, and even soil for farming!",
       mechanismSteps: [
-        {
-          step: 1,
-          title: "Proton Transfer",
-          description: "The indicator molecule gains or loses a tiny hydrogen ion (H⁺) depending on the liquid it is in."
-        },
-        {
-          step: 2,
-          title: "Shape Change",
-          description: "Because it lost or gained a piece, the molecule's shape changes! This new shape absorbs light differently, which is why your eyes see a different color."
-        }
+        "Proton Transfer: The indicator molecule gains or loses a tiny hydrogen ion (H⁺) depending on the liquid it is in.",
+        "Shape Change: Because it lost or gained a piece, the molecule's shape changes! This new shape absorbs light differently, which is why your eyes see a different color."
       ]
     }
   }
@@ -518,16 +510,8 @@ function makeFallback(reactionResult) {
     followUpQuestions: ["What happens if you add a catalyst?", "Can we separate these chemicals again?", "What if we heat this mixture up?"],
     realWorldLink: "Making lemonade from water, sugar, and lemon juice is a physical mixture — no explosions, just a tasty drink!",
     mechanismSteps: [
-      {
-        step: 1,
-        title: "Diffusion",
-        description: "The molecules of the chemicals start bumping into each other and spreading out evenly across the liquid."
-      },
-      {
-        step: 2,
-        title: "Equilibrium",
-        description: "The mixture settles down. Without a spark or a chemical reason to change, they stay as a stable mixture!"
-      }
+      "Diffusion: The molecules of the chemicals start bumping into each other and spreading out evenly across the liquid.",
+      "Equilibrium: The mixture settles down. Without a spark or a chemical reason to change, they stay as a stable mixture!"
     ]
   }
 }
