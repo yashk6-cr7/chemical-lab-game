@@ -1,9 +1,10 @@
-import { useRef, useEffect, useMemo, useCallback } from 'react'
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react'
 import * as THREE from 'three'
 import useLabStore from '../../store/useLabStore'
 import { useRefDisposal } from '../../utils/disposal'
 import HotPlate from '../equipment/HotPlate'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
+import PourStream from '../effects/PourStream'
 
 // ─── Bench Damage: canvas texture compositing ───────────────────────────────
 function useDamageTexture() {
@@ -158,15 +159,17 @@ function Sink({ position }) {
     }
   }
 
+  const [tapRunning, setTapRunning] = useState(false)
+
   const handleTapClick = (e) => {
     e.stopPropagation()
     if (!useLabStore.getState().nearBench) return
-    if (isHoldingBeaker && heldBeakerId) {
-      setIsPouring(true)
+    if (isHoldingBeaker && heldBeakerId && !tapRunning) {
+      setTapRunning(true)
       setTimeout(() => {
         pourIntoBeaker(heldBeakerId, { id: 'water', name: 'Water', color: '#e0f7fa' }, 20, '#e0f7fa')
-        setIsPouring(false)
-      }, 500)
+        setTapRunning(false)
+      }, 1000)
     }
   }
 
@@ -233,6 +236,11 @@ function Sink({ position }) {
           <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.01, 0.06, 8]} />
           <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
         </mesh>
+        
+        {/* Water Stream Visual */}
+        <group position={[0, 0.28, 0.08]}>
+          <PourStream active={tapRunning} color="#e0f7fa" />
+        </group>
       </group>
     </group>
   )

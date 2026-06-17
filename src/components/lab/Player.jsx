@@ -19,6 +19,8 @@ const _UP = new THREE.Vector3(0, 1, 0)
 const BENCH_INTERACTION_POSITIONS = [
   new THREE.Vector3(0, 0, 1.4),    // Front of main bench
   new THREE.Vector3(0, 0, -1.4),   // Back of main bench
+  new THREE.Vector3(2.6, 0, 1.4),  // Front of sink
+  new THREE.Vector3(2.6, 0, -1.4), // Back of sink
   new THREE.Vector3(-4.0, 0, -2.0) // Secondary bench
 ]
 const INTERACTION_RADIUS = 1.4
