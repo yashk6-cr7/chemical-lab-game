@@ -9,7 +9,6 @@ import useLabStore, { useBeakers, useSafetyGear } from '../store/useLabStore'
 export function useSimulation() {
   const beakers     = useBeakers()
   const safetyGear  = useSafetyGear()
-  const depthMode   = useLabStore(state => state.depthMode)
   const pourIntoBeaker   = useLabStore(state => state.pourIntoBeaker)
   const hotplate         = useLabStore(state => state.hotplate)
 
@@ -25,11 +24,11 @@ export function useSimulation() {
     pourIntoBeaker(toBeakerId, fromChemical, amount, newColor)
   }, [beakers, pourIntoBeaker])
 
-  // Get human-readable description at current depth mode
+  // Get human-readable description (Open Everything — no depth filtering)
   const getDescription = useCallback((reactionResult) => {
     if (!reactionResult) return ''
-    return reactionResult.description?.[depthMode] || reactionResult.description?.easy || ''
-  }, [depthMode])
+    return reactionResult.description?.moderate || reactionResult.description?.easy || ''
+  }, [])
 
   // Get beaker by ID
   const getBeaker = useCallback((id) => {

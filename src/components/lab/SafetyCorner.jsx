@@ -16,7 +16,6 @@ function EyewashStation({ position }) {
   const eyeExposureActive = useLabStore(state => state.eyeExposureActive)
   const setEyeExposure    = useLabStore(state => state.setEyeExposure)
   const addConsequence    = useLabStore(state => state.addConsequence)
-  const depthMode         = useLabStore(state => state.depthMode)
   const hoverTarget       = useLabStore(state => state.hoverTarget)
   const setHoverTarget    = useLabStore(state => state.setHoverTarget)
 
@@ -53,11 +52,7 @@ function EyewashStation({ position }) {
           id: Date.now(),
           type: 'eyewash_used',
           severity: 1,
-          message: {
-            easy: 'Eyes rinsed at the eyewash station. Injury mitigated. Great instinct!',
-            moderate: 'Ocular irrigation performed. 15+ minutes recommended. Injury severity reduced.',
-            complex: 'Copious water irrigation initiated. Dilutes and mechanically removes chemical from corneal surface. pH normalization key objective.'
-          }
+          message: 'Ocular irrigation performed. 15+ minutes recommended. Injury severity reduced.',
         })
         setIsUsing(false)
         setIsFlowing(false)
@@ -167,11 +162,7 @@ function EmergencyShower({ position }) {
           id: Date.now(),
           type: 'shower_used',
           severity: 1,
-          message: {
-            easy: 'Emergency shower activated! Chemical exposure reduced. A new lab coat is ready.',
-            moderate: 'Full-body decontamination performed. Shower for minimum 15 minutes per ANSI Z358.1.',
-            complex: 'Deluge shower: 75.7+ L/min for minimum 15 min. Removes chemical from skin, hair, and clothing. New PPE required before re-entering work area.'
-          }
+          message: 'Full-body decontamination performed. Shower for minimum 15 minutes per ANSI Z358.1.',
         })
         setTimeout(() => setIsRunning(false), 5000)
       }, 500)

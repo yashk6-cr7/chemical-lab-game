@@ -132,6 +132,8 @@ function Sink({ position }) {
   const setHoverTarget = useLabStore(state => state.setHoverTarget)
   const isHoldingBeaker = useLabStore(state => state.isHoldingBeaker)
   const rinseBeaker = useLabStore(state => state.rinseBeaker)
+  const pourIntoBeaker = useLabStore(state => state.pourIntoBeaker)
+  const setIsPouring = useLabStore(state => state.setIsPouring)
   const heldBeakerId = useLabStore(state => state.heldBeakerId)
 
   const geoRefs = useRef([])
@@ -148,11 +150,23 @@ function Sink({ position }) {
     setHoverTarget(null)
   }
 
-  const handleClick = (e) => {
+  const handleBasinClick = (e) => {
     e.stopPropagation()
     if (!useLabStore.getState().nearBench) return
     if (isHoldingBeaker && heldBeakerId) {
       rinseBeaker(heldBeakerId)
+    }
+  }
+
+  const handleTapClick = (e) => {
+    e.stopPropagation()
+    if (!useLabStore.getState().nearBench) return
+    if (isHoldingBeaker && heldBeakerId) {
+      setIsPouring(true)
+      setTimeout(() => {
+        pourIntoBeaker(heldBeakerId, { id: 'water', name: 'Water', color: '#e0f7fa' }, 20, '#e0f7fa')
+        setIsPouring(false)
+      }, 500)
     }
   }
 
@@ -161,60 +175,65 @@ function Sink({ position }) {
       position={position}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
-      onClick={handleClick}
     >
-      {/* Basin cutout illusion — inset dark plane */}
-      <mesh position={[0, 0.01, 0]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.55, 0.04, 0.4]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#b0b0b0" metalness={0.8} />
-      </mesh>
-      {/* Basin inner bottom */}
-      <mesh position={[0, -0.07, 0]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.01, 0.35]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#999999" metalness={0.9} roughness={0.15} />
-      </mesh>
-      {/* Basin walls — 4 sides */}
-      <mesh position={[0, -0.035, 0.175]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.07, 0.01]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
-      </mesh>
-      <mesh position={[0, -0.035, -0.175]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.07, 0.01]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
-      </mesh>
-      <mesh position={[0.24, -0.035, 0]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.07, 0.35]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
-      </mesh>
-      <mesh position={[-0.24, -0.035, 0]}>
-        <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.07, 0.35]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
-      </mesh>
-      {/* Drain */}
-      <mesh position={[0, -0.072, 0]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.03, 0.03, 0.01, 16]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#666666" metalness={1.0} roughness={0.1} />
-      </mesh>
+      {/* Basin group — click to empty */}
+      <group onClick={handleBasinClick}>
+        {/* Basin cutout illusion — inset dark plane */}
+        <mesh position={[0, 0.01, 0]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.55, 0.04, 0.4]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#b0b0b0" metalness={0.8} />
+        </mesh>
+        {/* Basin inner bottom */}
+        <mesh position={[0, -0.07, 0]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.01, 0.35]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#999999" metalness={0.9} roughness={0.15} />
+        </mesh>
+        {/* Basin walls — 4 sides */}
+        <mesh position={[0, -0.035, 0.175]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.07, 0.01]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, -0.035, -0.175]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.48, 0.07, 0.01]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.24, -0.035, 0]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.07, 0.35]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
+        </mesh>
+        <mesh position={[-0.24, -0.035, 0]}>
+          <boxGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.07, 0.35]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#aaaaaa" metalness={0.85} roughness={0.2} />
+        </mesh>
+        {/* Drain */}
+        <mesh position={[0, -0.072, 0]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.03, 0.03, 0.01, 16]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#666666" metalness={1.0} roughness={0.1} />
+        </mesh>
+      </group>
 
-      {/* Chrome tap — vertical body */}
-      <mesh position={[0, 0.18, -0.12]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.018, 0.022, 0.22, 12]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#e0e0e0" metalness={1.0} roughness={0.1} />
-      </mesh>
-      {/* Tap spout — curved horizontal */}
-      <mesh position={[0, 0.28, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.012, 0.016, 0.2, 12]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#e0e0e0" metalness={1.0} roughness={0.1} />
-      </mesh>
-      {/* Tap handles — left and right knobs */}
-      <mesh position={[-0.07, 0.19, -0.12]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.01, 0.06, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
-      </mesh>
-      <mesh position={[0.07, 0.19, -0.12]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.01, 0.06, 8]} />
-        <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
-      </mesh>
+      {/* Tap group — click to add water */}
+      <group onClick={handleTapClick}>
+        {/* Chrome tap — vertical body */}
+        <mesh position={[0, 0.18, -0.12]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.018, 0.022, 0.22, 12]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#e0e0e0" metalness={1.0} roughness={0.1} />
+        </mesh>
+        {/* Tap spout — curved horizontal */}
+        <mesh position={[0, 0.28, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.012, 0.016, 0.2, 12]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#e0e0e0" metalness={1.0} roughness={0.1} />
+        </mesh>
+        {/* Tap handles — left and right knobs */}
+        <mesh position={[-0.07, 0.19, -0.12]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.01, 0.06, 8]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.07, 0.19, -0.12]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry ref={el => geoRefs.current.push(el)} args={[0.01, 0.01, 0.06, 8]} />
+          <meshStandardMaterial ref={el => matRefs.current.push(el)} color="#dddddd" metalness={0.9} roughness={0.2} />
+        </mesh>
+      </group>
     </group>
   )
 }

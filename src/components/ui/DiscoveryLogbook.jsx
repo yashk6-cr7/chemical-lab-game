@@ -29,10 +29,8 @@ const FILTER_OPTIONS = [
 ]
 
 // ── Entry Card ────────────────────────────────────────────────────────────────
-const EntryCard = memo(function EntryCard({ entry, depthMode, onSelect, setToast }) {
-  const description = depthMode === 'easy'     ? entry.easyDescription
-    : depthMode === 'moderate' ? entry.moderateDescription
-    : entry.complexDescription
+const EntryCard = memo(function EntryCard({ entry, onSelect, setToast }) {
+  const description = entry.description || entry.moderateDescription || entry.easyDescription || entry.complexDescription
 
   const typeColor = TYPE_COLORS[entry.reactionType] || 'text-white/50 bg-white/5 border-white/10'
 
@@ -96,11 +94,9 @@ const EntryCard = memo(function EntryCard({ entry, depthMode, onSelect, setToast
 })
 
 // ── Entry Detail Modal ────────────────────────────────────────────────────────
-const EntryDetail = memo(function EntryDetail({ entry, depthMode, onClose }) {
+const EntryDetail = memo(function EntryDetail({ entry, onClose }) {
   if (!entry) return null
-  const description = depthMode === 'easy'     ? entry.easyDescription
-    : depthMode === 'moderate' ? entry.moderateDescription
-    : entry.complexDescription
+  const description = entry.description || entry.moderateDescription || entry.easyDescription || entry.complexDescription
 
   return (
     <motion.div
@@ -131,37 +127,61 @@ const EntryDetail = memo(function EntryDetail({ entry, depthMode, onClose }) {
           <button onClick={onClose} className="text-white/40 hover:text-white text-lg">✕</button>
         </div>
 
-        <p className="text-sm text-white/70 leading-relaxed mb-4">{description}</p>
-
-        {entry.equation && (
-          <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 mb-4 text-center">
-            <code className="text-cyan-300 font-mono text-sm">{entry.equation}</code>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6"
+             style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+          
+          <div>
+            <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1">
+              Reactants
+            </div>
+            <h2 className="text-2xl font-bold text-white">
+              {entry.chemicals?.join(' + ') || 'Unknown Reaction'}
+            </h2>
+            {entry.reactionType && entry.reactionType !== 'mixing_only' && (
+              <div className="text-xs text-cyan-400 mt-2">
+                Type: <span className="uppercase tracking-wider">{entry.reactionType.replace(/_/g, ' ')}</span>
+              </div>
+            )}
           </div>
-        )}
 
-        {entry.realWorldLink && (
-          <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3 mb-4 flex gap-3">
-            <span className="text-xl">🌍</span>
-            <p className="text-emerald-200 text-xs leading-relaxed">{entry.realWorldLink}</p>
+          <div>
+            <p className="text-sm text-white/80 leading-relaxed">
+              {description}
+            </p>
           </div>
-        )}
 
-        {entry.safetyViolations?.length > 0 && (
-          <div className="bg-red-950/30 border border-red-500/20 rounded-xl p-3 text-xs text-red-300">
-            ⚠ Missing gear: {entry.safetyViolations.join(', ')}
-          </div>
-        )}
+          {entry.equation && (
+            <div className="bg-black/40 border border-white/10 rounded-xl p-4">
+              <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Equation</div>
+              <code className="text-cyan-300 text-sm font-mono block">
+                {entry.equation}
+              </code>
+            </div>
+          )}
+
+          {entry.realWorldLink && (
+            <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3 mb-4 flex gap-3">
+              <span className="text-xl">🌍</span>
+              <p className="text-emerald-200 text-xs leading-relaxed">{entry.realWorldLink}</p>
+            </div>
+          )}
+
+          {entry.safetyViolations?.length > 0 && (
+            <div className="bg-red-950/30 border border-red-500/20 rounded-xl p-3 text-xs text-red-300">
+              ⚠ Missing gear: {entry.safetyViolations.join(', ')}
+            </div>
+          )}
+        </div>
       </motion.div>
     </motion.div>
   )
 })
 
 // ── buildLogbookHTML ──────────────────────────────────────────────────────────
-function buildLogbookHTML(entries, depthMode) {
+function buildLogbookHTML(entries) {
   const rows = entries.map(e => {
-    const desc = depthMode === 'easy' ? e.easyDescription
-      : depthMode === 'moderate' ? e.moderateDescription
-      : e.complexDescription
+    const desc = e.description || e.easyDescription || e.moderateDescription || e.complexDescription
     return `
       <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;">
         <div style="font-weight:bold;font-size:16px;">${e.chemicals?.join(' + ') || 'Unknown'}</div>
@@ -191,7 +211,6 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
   const search = useLabStore(s => s.logbookSearch)
   const filter = useLabStore(s => s.logbookFilter)
 
-  const depthMode    = useLabStore(s => s.depthMode)
   const setSearch    = useLabStore(s => s.setLogbookSearch)
   const setFilter    = useLabStore(s => s.setLogbookFilter)
 
@@ -219,7 +238,7 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
       const q = search.toLowerCase()
       list = list.filter(e =>
         e.chemicals?.some(c => c.toLowerCase().includes(q)) ||
-        e.easyDescription?.toLowerCase().includes(q) ||
+        (e.description || e.easyDescription || e.moderateDescription)?.toLowerCase().includes(q) ||
         e.equation?.toLowerCase().includes(q)
       )
     }
@@ -227,14 +246,14 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
   }, [entries, filter, search])
 
   const handleExport = useCallback(() => {
-    const html = buildLogbookHTML(filteredEntries, depthMode)
+    const html = buildLogbookHTML(filteredEntries)
     const win = window.open('', '_blank')
     if (win) {
       win.document.write(html)
       win.document.close()
       win.print()
     }
-  }, [filteredEntries, depthMode])
+  }, [filteredEntries])
 
   return (
     <>
@@ -336,7 +355,6 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
                       <EntryCard
                         key={entry.id}
                         entry={entry}
-                        depthMode={depthMode}
                         onSelect={setSelectedEntry}
                         setToast={setToast}
                       />
@@ -355,7 +373,6 @@ export const DiscoveryLogbook = memo(function DiscoveryLogbook() {
           <EntryDetail
             key="entry-detail"
             entry={selectedEntry}
-            depthMode={depthMode}
             onClose={() => setSelectedEntry(null)}
           />
         )}

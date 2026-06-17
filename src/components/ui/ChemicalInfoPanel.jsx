@@ -4,7 +4,6 @@ import useLabStore from '../../store/useLabStore'
 export default function ChemicalInfoPanel() {
   const selectedChemical = useLabStore(state => state.selectedChemical)
   const setSelectedChemical = useLabStore(state => state.setSelectedChemical)
-  const depthMode = useLabStore(state => state.depthMode)
 
   if (!selectedChemical) return null
 
@@ -14,13 +13,13 @@ export default function ChemicalInfoPanel() {
     </div>
   )
 
+  // Open Everything — show richest available description
   const getDescription = () => {
-    switch(depthMode) {
-      case 'easy': return selectedChemical.easyDescription;
-      case 'moderate': return selectedChemical.moderateDescription;
-      case 'complex': return selectedChemical.complexDescription;
-      default: return selectedChemical.description;
-    }
+    return selectedChemical.moderateDescription
+      || selectedChemical.complexDescription
+      || selectedChemical.easyDescription
+      || selectedChemical.description
+      || ''
   }
 
   return (

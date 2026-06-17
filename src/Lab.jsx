@@ -48,7 +48,6 @@ import AirQualityMeter from './components/ui/AirQualityMeter'
 import ConsequenceDisplay from './components/ui/ConsequenceDisplay'
 
 // UI — Phase 8 (eager)
-import { DepthModeSelector } from './components/ui/DepthModeSelector'
 import { WhatHappenedPanel } from './components/ui/WhatHappenedPanel'
 
 // UI — Phase 9 (eager for small components, lazy for heavy panels)
@@ -429,7 +428,6 @@ export default function Lab() {
         <AirQualitySimulator />
 
         {/* ── Phase 8 UI ── */}
-        <DepthModeSelector />
         <WhatHappenedPanel />
         <LogbookTrigger />
         <Suspense fallback={null}><DiscoveryLogbook /></Suspense>

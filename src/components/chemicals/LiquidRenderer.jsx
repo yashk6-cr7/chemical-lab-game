@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 // shaders.md: Full ShaderMaterial upgrade for liquid with Fresnel effect
-export default function LiquidRenderer({ fillLevel, color, temperature }) {
+export default function LiquidRenderer({ fillLevel, color, temperature, reactionIntensity = 0 }) {
   const liquidMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -13,7 +13,8 @@ export default function LiquidRenderer({ fillLevel, color, temperature }) {
         uOpacity: { value: 0.85 },
         uFillLevel: { value: fillLevel },
         uFresnelPower: { value: 2.0 },
-        uBoilIntensity: { value: 0.0 }
+        uBoilIntensity: { value: 0.0 },
+        uReactionIntensity: { value: reactionIntensity }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -22,6 +23,7 @@ export default function LiquidRenderer({ fillLevel, color, temperature }) {
         varying vec3 vWorldPos;
         uniform float uTime;
         uniform float uBoilIntensity;
+        uniform float uReactionIntensity;
         
         void main() {
           vUv = uv;
@@ -32,9 +34,11 @@ export default function LiquidRenderer({ fillLevel, color, temperature }) {
           
           vec3 pos = position;
           // Wave displacement + boiling turbulence
-          float waveX = sin(pos.x * 12.0 + uTime * 2.0) * 0.002;
-          float waveZ = sin(pos.z * 10.0 + uTime * 1.5) * 0.002;
-          float boil = sin(pos.x * 30.0 + uTime * 15.0) * sin(pos.z * 25.0 + uTime * 12.0) * 0.004 * uBoilIntensity;
+          float waveX = sin(pos.x * 12.0 + uTime * (2.0 + uReactionIntensity)) * 0.002;
+          float waveZ = sin(pos.z * 10.0 + uTime * (1.5 + uReactionIntensity)) * 0.002;
+          
+          float totalTurbulence = uBoilIntensity + (uReactionIntensity * 0.5);
+          float boil = sin(pos.x * 30.0 + uTime * 15.0) * sin(pos.z * 25.0 + uTime * 12.0) * 0.004 * totalTurbulence;
           
           // Only displace the top surface (y > 0)
           if (pos.y > 0.0) {
@@ -73,6 +77,8 @@ export default function LiquidRenderer({ fillLevel, color, temperature }) {
     if (liquidMaterial) {
       liquidMaterial.uniforms.uTime.value = state.clock.elapsedTime
       liquidMaterial.uniforms.uBoilIntensity.value = Math.max(0, (temperature - 80) / 40) // Start boiling effect at 80C
+      // Smoothly approach the target reaction intensity
+      liquidMaterial.uniforms.uReactionIntensity.value += (reactionIntensity - liquidMaterial.uniforms.uReactionIntensity.value) * 0.1
     }
   })
 

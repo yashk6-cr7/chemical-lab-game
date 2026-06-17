@@ -1,5 +1,5 @@
-// depthLayer.js — Phase 8 complete rewrite
-// Pure function: getDepthContent(reactionResult, depthMode) → DepthContent
+// depthLayer.js — Open Everything mode (all depth content shown at once)
+// Pure function: getDepthContent(reactionResult) → DepthContent (combined moderate + complex + easy)
 
 const REACTION_CONTENT = {
 
@@ -466,15 +466,11 @@ const REACTION_CONTENT = {
 }
 
 // Fallback for unknown reaction types
-function makeFallback(reactionResult, depthMode) {
+function makeFallback(reactionResult) {
   const typeName = reactionResult?.type || 'unknown'
   return {
     headline: "A chemical reaction occurred",
-    body: depthMode === 'complex'
-      ? `Reaction type '${typeName}' resulted in changes to chemical composition and energy state.`
-      : depthMode === 'moderate'
-      ? `The chemicals interacted and produced a noticeable change.`
-      : `Something happened when you mixed these chemicals!`,
+    body: `The chemicals interacted and produced a noticeable change. (Type: ${typeName})`,
     funFact: "Every chemical reaction either absorbs or releases energy — chemistry is really just about energy moving around.",
     equation: reactionResult?.equation || '',
     moleculeKeys: { reactant1: null, reactant2: null, product1: null, product2: null },
@@ -486,42 +482,39 @@ function makeFallback(reactionResult, depthMode) {
 }
 
 /**
- * Returns depth-appropriate content for a reaction result.
+ * Returns combined content for a reaction result, ignoring depthMode (Open Everything)
  * @param {object} reactionResult - Full ReactionResult from reactionEngine
- * @param {'easy'|'moderate'|'complex'} depthMode
  * @returns {object} DepthContent
  */
-export function getDepthContent(reactionResult, depthMode) {
-  if (!reactionResult) return makeFallback(null, depthMode)
+export function getDepthContent(reactionResult) {
+  if (!reactionResult) return makeFallback(null)
 
   const type = reactionResult.type
-  const modeContent = REACTION_CONTENT[type]?.[depthMode]
+  const c = REACTION_CONTENT[type]
   
-  if (!modeContent) {
-    // Try other modes as fallback
-    const fallbackContent = REACTION_CONTENT[type]?.easy || makeFallback(reactionResult, depthMode)
-    return fallbackContent
+  if (!c) {
+    return makeFallback(reactionResult)
   }
 
+  // Open Everything: use moderate for main text, but include all complex/easy specific modules
   return {
-    headline: modeContent.headline,
-    body: modeContent.body,
-    funFact: modeContent.funFact,
-    equation: modeContent.equation || '',
-    moleculeKeys: modeContent.moleculeKeys || { reactant1: null, reactant2: null, product1: null, product2: null },
-    energyData: modeContent.energyData || { deltaH: 0, activationEnergy: 30, isExothermic: false },
-    followUpQuestions: modeContent.followUpQuestions || [],
-    realWorldLink: modeContent.realWorldLink || '',
-    mechanismSteps: modeContent.mechanismSteps || [],
+    headline: c.moderate?.headline || c.easy?.headline || 'Reaction',
+    body: c.moderate?.body || c.easy?.body || '',
+    funFact: c.easy?.funFact || c.moderate?.funFact || '',
+    equation: c.moderate?.equation || c.complex?.equation || '',
+    moleculeKeys: c.moderate?.moleculeKeys || { reactant1: null, reactant2: null, product1: null, product2: null },
+    energyData: c.complex?.energyData || { deltaH: 0, activationEnergy: 30, isExothermic: false },
+    followUpQuestions: c.moderate?.followUpQuestions || c.easy?.followUpQuestions || [],
+    realWorldLink: c.easy?.realWorldLink || '',
+    mechanismSteps: c.complex?.mechanismSteps || [],
   }
 }
 
 // Legacy export for backward compatibility
-export function getDescription(reactionResult, depthMode) {
-  const content = getDepthContent(reactionResult, depthMode)
+export function getDescription(reactionResult) {
+  const content = getDepthContent(reactionResult)
   return content ? content.headline + ' ' + content.body : ''
 }
 
-export function getWhatHappenedContent(reactionResult, depthMode) {
-  return getDepthContent(reactionResult, depthMode)
-}
+// Alias kept for any consumers still importing getWhatHappenedContent
+export const getWhatHappenedContent = getDepthContent

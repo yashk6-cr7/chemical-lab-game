@@ -97,10 +97,20 @@ export default function Beaker({ beaker }) {
       return
     }
 
+    // IF holding another beaker, pour its contents into this beaker
+    if (isHoldingBeaker && heldBeakerId !== beaker.id) {
+      store.setIsPouring(true)
+      setTimeout(() => {
+        store.pourBeakerToBeaker(beaker.id, heldBeakerId)
+        store.setIsPouring(false)
+      }, 500)
+      return
+    }
+
     if (!isHoldingBeaker) {
       pickUpBeaker(beaker.id)
     }
-  }, [isHoldingBeaker, isHoldingBottle, heldChemical, pickUpBeaker, beaker])
+  }, [isHoldingBeaker, isHoldingBottle, heldChemical, heldBeakerId, pickUpBeaker, beaker])
 
   // physics.md: Handle high-velocity impacts
   const handleCollision = useCallback(() => {
@@ -150,6 +160,7 @@ export default function Beaker({ beaker }) {
           fillLevel={beaker.totalVolume / 100} 
           color={beaker.mixedColor} 
           temperature={beaker.temperature}
+          reactionIntensity={beaker.reactionResult ? beaker.reactionResult.intensity : 0}
         />
 
         {/* Volume markings */}

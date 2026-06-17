@@ -540,6 +540,49 @@ const useLabStore = create((set, get) => ({
     })
   },
 
+  pourBeakerToBeaker: (targetId, sourceId) => {
+    const state = get()
+    const targetIndex = state.beakers.findIndex(b => b.id === targetId)
+    const sourceIndex = state.beakers.findIndex(b => b.id === sourceId)
+    if (targetIndex === -1 || sourceIndex === -1) return
+    
+    const targetBeaker = state.beakers[targetIndex]
+    const sourceBeaker = state.beakers[sourceIndex]
+    
+    // Default pour amount is 20mL or whatever is left
+    const pourAmount = Math.min(20, sourceBeaker.totalVolume)
+    if (pourAmount <= 0) return
+
+    // Find the dominant chemical in source to simulate pouring
+    const dominantChem = sourceBeaker.contents.length > 0 
+      ? sourceBeaker.contents[sourceBeaker.contents.length - 1]
+      : { chemicalId: 'unknown', amount: pourAmount, color: sourceBeaker.mixedColor }
+
+    // Reduce source beaker volume
+    const newSourceVolume = sourceBeaker.totalVolume - pourAmount
+    let newSourceContents = [...sourceBeaker.contents]
+    if (newSourceVolume <= 0) {
+      newSourceContents = []
+    } else {
+      // Scale down contents proportionally if needed, or just keep them for now
+    }
+
+    set(state => {
+      const updatedBeakers = [...state.beakers]
+      updatedBeakers[sourceIndex] = {
+        ...sourceBeaker,
+        totalVolume: newSourceVolume,
+        contents: newSourceContents,
+        mixedColor: newSourceVolume <= 0 ? '#ffffff' : sourceBeaker.mixedColor,
+        reactionResult: newSourceVolume <= 0 ? null : sourceBeaker.reactionResult
+      }
+      return { beakers: updatedBeakers }
+    })
+
+    // Now pour the chemical into the target beaker using existing logic
+    get().pourIntoBeaker(targetId, { id: dominantChem.chemicalId, name: 'Mixed Liquid', color: sourceBeaker.mixedColor }, pourAmount, sourceBeaker.mixedColor)
+  },
+
   rinseBeaker: (beakerId) => set((state) => ({
     beakers: state.beakers.map(b =>
       b.id === beakerId

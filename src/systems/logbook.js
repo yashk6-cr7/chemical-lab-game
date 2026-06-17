@@ -8,9 +8,7 @@ function getChemicalName(chemicalId) {
 }
 
 export function recordReaction(reactionResult, chemicals, store) {
-  const easy = getDepthContent(reactionResult, 'easy')
-  const moderate = getDepthContent(reactionResult, 'moderate')
-  const complex = getDepthContent(reactionResult, 'complex')
+  const content = getDepthContent(reactionResult)
 
   const chemicalNames = chemicals.map(c => getChemicalName(c.chemicalId))
   const chemicalIds = chemicals.map(c => c.chemicalId)
@@ -22,14 +20,12 @@ export function recordReaction(reactionResult, chemicals, store) {
     chemicalIds: chemicalIds,
     reactionType: reactionResult?.type || 'mixing_only',
     reactionResult,
-    easyDescription: (easy.headline + ' ' + easy.body).trim(),
-    moderateDescription: (moderate.headline + ' ' + moderate.body).trim(),
-    complexDescription: (complex.headline + ' ' + complex.body).trim(),
-    equation: complex.equation || '',
-    molecules: complex.moleculeKeys || { reactant1: null, reactant2: null, product1: null, product2: null },
-    energyData: complex.energyData || { deltaH: 0, activationEnergy: 30, isExothermic: false },
-    followUpQuestions: easy.followUpQuestions || [],
-    realWorldLink: easy.realWorldLink || '',
+    description: (content.headline + ' ' + content.body).trim(),
+    equation: content.equation || '',
+    molecules: content.moleculeKeys || { reactant1: null, reactant2: null, product1: null, product2: null },
+    energyData: content.energyData || { deltaH: 0, activationEnergy: 30, isExothermic: false },
+    followUpQuestions: content.followUpQuestions || [],
+    realWorldLink: content.realWorldLink || '',
     safetyViolations: reactionResult?.safetyViolations || [],
   }
 
@@ -66,18 +62,15 @@ export function loadLogbookFromStorage() {
   }
 }
 
-export function buildLogbookHTML(entries, depthMode) {
+export function buildLogbookHTML(entries) {
   const rows = entries.map(e => {
-    const desc = depthMode === 'easy' ? e.easyDescription
-      : depthMode === 'moderate' ? e.moderateDescription
-      : e.complexDescription
     return `
       <div style="border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;">
         <div style="font-weight:bold;font-size:16px;">${e.chemicals?.join(' + ') || 'Unknown'}</div>
         <div style="color:#888;font-size:12px;margin-bottom:8px;">
           ${e.reactionType?.replace(/_/g, ' ')} · ${new Date(e.timestamp).toLocaleString()}
         </div>
-        <p style="font-size:14px;line-height:1.6;">${desc}</p>
+        <p style="font-size:14px;line-height:1.6;">${e.description || e.easyDescription || e.moderateDescription || e.complexDescription || 'No description available'}</p>
         ${e.equation ? `<code style="display:block;background:#f4f4f4;padding:8px;border-radius:4px;margin-top:8px;">${e.equation}</code>` : ''}
       </div>
     `

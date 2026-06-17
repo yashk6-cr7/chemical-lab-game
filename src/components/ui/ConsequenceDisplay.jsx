@@ -63,12 +63,13 @@ const SEVERITY_CONFIG = {
   5: { border: 'border-l-red-700', glow: 'rgba(185,28,28,0.6)', icon: '☠️', label: 'CRITICAL', textColor: 'text-red-100', bg: 'bg-red-950/90' },
 }
 
-function ConsequenceCard({ event, depthMode, onDismiss }) {
+function ConsequenceCard({ event, onDismiss }) {
   const severity = Math.min(5, Math.max(1, event.severity || 3))
   const config = SEVERITY_CONFIG[severity]
-  const content = CONSEQUENCE_CONTENT[event.type]?.[depthMode] 
-    || CONSEQUENCE_CONTENT[event.type]?.easy 
-    || { title: 'Safety Event', description: event.message?.[depthMode] || event.message?.easy || '', realWorld: '', action: '' }
+  // Open Everything — show moderate content, fall back to easy
+  const content = CONSEQUENCE_CONTENT[event.type]?.moderate
+    || CONSEQUENCE_CONTENT[event.type]?.easy
+    || { title: 'Safety Event', description: event.message?.moderate || event.message?.easy || event.message || '', realWorld: '', action: '' }
 
   const requiresManualDismiss = severity >= 4
 
@@ -156,7 +157,6 @@ function ConsequenceCard({ event, depthMode, onDismiss }) {
 const ConsequenceDisplay = memo(function ConsequenceDisplay() {
   const consequenceQueue = useLabStore(state => state.consequenceQueue)
   const dismissConsequence = useLabStore(state => state.dismissConsequence)
-  const depthMode = useLabStore(state => state.depthMode)
 
   const handleDismiss = useCallback(() => {
     dismissConsequence()
@@ -172,7 +172,6 @@ const ConsequenceDisplay = memo(function ConsequenceDisplay() {
           <div key={currentEvent.id || currentEvent.type + currentEvent.severity} className="pointer-events-auto">
             <ConsequenceCard
               event={currentEvent}
-              depthMode={depthMode}
               onDismiss={handleDismiss}
             />
           </div>

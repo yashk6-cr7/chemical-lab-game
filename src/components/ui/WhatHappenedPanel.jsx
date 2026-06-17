@@ -1,9 +1,7 @@
 import { memo, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { shallow } from 'zustand/shallow'
 import useLabStore from '../../store/useLabStore'
 import { getDepthContent } from '../../systems/depthLayer'
-import { DepthModeSelector } from './DepthModeSelector'
 import { MoleculeViewer } from './MoleculeViewer'
 import { EnergyDiagram } from './EnergyDiagram'
 import { RealWorldLink } from './RealWorldLink'
@@ -14,12 +12,10 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
   const show = useLabStore(s => s.showWhatHappened)
   const reaction = useLabStore(s => s.whatHappenedReaction)
 
-  const depthMode = useLabStore(s => s.depthMode)
-
   const content = useMemo(() => {
     if (!reaction) return null
-    return getDepthContent(reaction, depthMode)
-  }, [reaction, depthMode])
+    return getDepthContent(reaction)
+  }, [reaction])
 
   const handleClose = useCallback(() => {
     useLabStore.getState().setShowWhatHappened(false)
@@ -57,9 +53,6 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
                 scrollbarColor: 'rgba(255,255,255,0.1) transparent',
               }}
             >
-              {/* Depth Mode Selector — compact variant */}
-              <DepthModeSelector compact />
-
               {/* Header */}
               <div className="flex items-center gap-2">
                 <span className="text-xl">🧪</span>
@@ -76,22 +69,22 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
               </div>
 
               {/* Headline */}
-              <DepthTransition depthKey={`headline-${depthMode}`}>
+              <DepthTransition depthKey="headline-all">
                 <h3 className="text-sm font-bold text-white leading-snug">
                   {content.headline}
                 </h3>
               </DepthTransition>
 
               {/* Body */}
-              <DepthTransition depthKey={`body-${depthMode}`}>
+              <DepthTransition depthKey="body-all">
                 <p className="text-xs text-white/70 leading-relaxed">
                   {content.body}
                 </p>
               </DepthTransition>
 
-              {/* Equation — moderate + complex */}
-              {depthMode !== 'easy' && content.equation && (
-                <DepthTransition depthKey={`eq-${depthMode}`}>
+              {/* Equation */}
+              {content.equation && (
+                <DepthTransition depthKey="eq-all">
                   <div className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-center">
                     <code className="text-cyan-300 text-xs font-mono leading-relaxed">
                       {content.equation}
@@ -100,9 +93,9 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
                 </DepthTransition>
               )}
 
-              {/* Molecule Viewer — moderate only */}
-              {depthMode === 'moderate' && content.moleculeKeys && (
-                <DepthTransition depthKey="molecule-moderate">
+              {/* Molecule Viewer */}
+              {content.moleculeKeys && (
+                <DepthTransition depthKey="molecule-all">
                   <MoleculeViewer
                     reactant1={content.moleculeKeys.reactant1}
                     reactant2={content.moleculeKeys.reactant2}
@@ -112,9 +105,9 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
                 </DepthTransition>
               )}
 
-              {/* Energy Diagram — complex only */}
-              {depthMode === 'complex' && content.energyData && (
-                <DepthTransition depthKey="energy-complex">
+              {/* Energy Diagram */}
+              {content.energyData && (
+                <DepthTransition depthKey="energy-all">
                   <EnergyDiagram
                     deltaH={content.energyData.deltaH}
                     activationEnergy={content.energyData.activationEnergy}
@@ -123,9 +116,9 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
                 </DepthTransition>
               )}
 
-              {/* Mechanism Steps — complex only */}
-              {depthMode === 'complex' && content.mechanismSteps?.length > 0 && (
-                <DepthTransition depthKey="mechanism-complex">
+              {/* Mechanism Steps */}
+              {content.mechanismSteps?.length > 0 && (
+                <DepthTransition depthKey="mechanism-all">
                   <div className="flex flex-col gap-2">
                     <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
                       Mechanism
@@ -140,21 +133,23 @@ export const WhatHappenedPanel = memo(function WhatHappenedPanel() {
                 </DepthTransition>
               )}
 
-              {/* Real-World Link — easy only */}
-              {depthMode === 'easy' && (
-                <DepthTransition depthKey="realworld-easy">
+              {/* Real-World Link */}
+              {content.realWorldLink && (
+                <DepthTransition depthKey="realworld-all">
                   <RealWorldLink text={content.realWorldLink} />
                 </DepthTransition>
               )}
 
-              {/* Fun fact — always shown */}
-              <DepthTransition depthKey={`funfact-${depthMode}`}>
-                <div className="bg-amber-950/30 border border-amber-500/20 rounded-xl p-3">
-                  <p className="text-amber-200 text-xs leading-relaxed">
-                    💡 {content.funFact}
-                  </p>
-                </div>
-              </DepthTransition>
+              {/* Fun fact */}
+              {content.funFact && (
+                <DepthTransition depthKey="funfact-all">
+                  <div className="bg-amber-950/30 border border-amber-500/20 rounded-xl p-3">
+                    <p className="text-amber-200 text-xs leading-relaxed">
+                      💡 {content.funFact}
+                    </p>
+                  </div>
+                </DepthTransition>
+              )}
 
               {/* Divider */}
               <div className="h-px bg-white/10" />

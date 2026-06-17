@@ -46,7 +46,116 @@ function useFPSAdaptiveQuality() {
   return qualityRef
 }
 
-// Explosion flash — a quick white-orange shockwave ball that expands and fades
+// Custom ShaderMaterial for Explosions
+const explosionMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: { value: 0 },
+    uIntensity: { value: 1.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    uniform float uTime;
+    
+    // Simplex 3D Noise 
+    // by Ian McEwan, Ashima Arts
+    vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    float snoise(vec3 v){ 
+      const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+      const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy) );
+      vec3 x0 = v - i + dot(i, C.xxx) ;
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min( g.xyz, l.zxy );
+      vec3 i2 = max( g.xyz, l.zxy );
+      vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+      vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+      vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
+      i = mod(i, 289.0 ); 
+      vec4 p = permute( permute( permute( 
+                i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+      float n_ = 1.0/7.0;
+      vec3  ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z *ns.z);  
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_ );    
+      vec4 x = x_ *ns.x + ns.yyyy;
+      vec4 y = y_ *ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4( x.xy, y.xy );
+      vec4 b1 = vec4( x.zw, y.zw );
+      vec4 s0 = floor(b0)*2.0 + 1.0;
+      vec4 s1 = floor(b1)*2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+      vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+      vec3 p0 = vec3(a0.xy,h.x);
+      vec3 p1 = vec3(a0.zw,h.y);
+      vec3 p2 = vec3(a1.xy,h.z);
+      vec3 p3 = vec3(a1.zw,h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+      p0 *= norm.x;
+      p1 *= norm.y;
+      p2 *= norm.z;
+      p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                    dot(p2,x2), dot(p3,x3) ) );
+    }
+
+    void main() {
+      vUv = uv;
+      vNormal = normal;
+      vPosition = position;
+      
+      // Calculate noise based on position and time
+      float noise = snoise(position * 8.0 + uTime * 3.0);
+      
+      // Displace vertices along normal to create fireball shape
+      vec3 newPosition = position + normal * noise * 0.15;
+      
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(newPosition, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    uniform float uTime;
+    uniform float uIntensity;
+    
+    void main() {
+      // Create a gradient from white (hot center) to yellow/orange to dark red (edges)
+      float dist = length(vPosition);
+      
+      vec3 colorInner = vec3(1.0, 1.0, 0.8); // White-yellow core
+      vec3 colorMid = vec3(1.0, 0.5, 0.0);   // Orange
+      vec3 colorOuter = vec3(0.2, 0.0, 0.0); // Dark red/smoke
+      
+      // Interpolate based on radius and time to simulate expansion cooling
+      float mixRatio = clamp((dist * 3.0) + (uTime * 1.5), 0.0, 1.0);
+      
+      vec3 finalColor = mix(colorInner, colorMid, smoothstep(0.0, 0.5, mixRatio));
+      finalColor = mix(finalColor, colorOuter, smoothstep(0.5, 1.0, mixRatio));
+      
+      // Fade out over time
+      float opacity = max(0.0, 1.0 - uTime * 1.2) * uIntensity;
+      
+      gl_FragColor = vec4(finalColor, opacity);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+});
+
+// Explosion flash — high quality GLSL shader fireball
 function ExplosionEffect({ position, intensity = 10 }) {
   const meshRef = useRef()
   const timeRef = useRef(0)
@@ -56,33 +165,37 @@ function ExplosionEffect({ position, intensity = 10 }) {
     if (!meshRef.current || !alive) return
     timeRef.current += delta
     const t = timeRef.current
-    // Expand fast then fade
-    const scale = Math.min(t * 8, 2.5) * (intensity / 10)
-    const opacity = Math.max(0, 1 - t * 2.5)
+    
+    // Expand and update shader uniforms
+    const scale = Math.min(t * 12, 4.0) * (intensity / 10)
     meshRef.current.scale.setScalar(scale)
-    meshRef.current.material.opacity = opacity
-    if (t > 0.8) setAlive(false)
+    
+    // Clone material on first frame to prevent sharing uniforms among multiple explosions
+    if (t < delta * 2) {
+      meshRef.current.material = explosionMaterial.clone()
+    }
+    
+    if (meshRef.current.material.uniforms) {
+      meshRef.current.material.uniforms.uTime.value = t
+      meshRef.current.material.uniforms.uIntensity.value = Math.max(0, 1 - t * 1.2)
+    }
+    
+    if (t > 1.2) setAlive(false)
   })
 
   if (!alive) return null
 
   return (
     <group position={position}>
-      {/* Core flash */}
+      {/* GLSL Fireball */}
       <mesh ref={meshRef}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshBasicMaterial
-          color="#ffdd44"
-          transparent
-          opacity={1}
-          depthWrite={false}
-          blending={3} // AdditiveBlending
-        />
+        <sphereGeometry args={[0.15, 64, 64]} />
+        <primitive object={explosionMaterial} attach="material" />
       </mesh>
       {/* Shockwave ring */}
       <ExplosionRing position={[0, 0, 0]} intensity={intensity} />
       {/* Point light flash */}
-      <pointLight color="#ff6600" intensity={intensity * 3} distance={3} decay={2} />
+      <pointLight color="#ff8800" intensity={intensity * 5} distance={5} decay={2} />
     </group>
   )
 }
@@ -96,25 +209,25 @@ function ExplosionRing({ position, intensity }) {
     if (!meshRef.current || !alive) return
     timeRef.current += delta
     const t = timeRef.current
-    const scale = t * 5 * (intensity / 10)
-    const opacity = Math.max(0, 0.8 - t * 2)
+    const scale = t * 15 * (intensity / 10)
+    const opacity = Math.max(0, 1.0 - t * 3)
     meshRef.current.scale.setScalar(scale)
     meshRef.current.material.opacity = opacity
-    if (t > 0.5) setAlive(false)
+    if (t > 0.4) setAlive(false)
   })
 
   if (!alive) return null
 
   return (
     <mesh ref={meshRef} position={position} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.08, 0.14, 32]} />
+      <ringGeometry args={[0.08, 0.12, 64]} />
       <meshBasicMaterial
-        color="#ff8800"
+        color="#ffffff"
         transparent
-        opacity={0.8}
+        opacity={1.0}
         depthWrite={false}
-        blending={3}
-        side={2}
+        blending={THREE.AdditiveBlending}
+        side={THREE.DoubleSide}
       />
     </mesh>
   )
